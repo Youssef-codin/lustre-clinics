@@ -203,14 +203,15 @@ export function CalendarSheet({
                     const load = loads.get(day);
                     const closed = isClosed(day, schedule);
                     const past = day < today;
+                    const picked = day === pending;
                     const full = (load?.fill ?? 0) >= FULL_AT;
-                    const fillTone = fillOf({ picked: day === pending, full, closed });
+                    const fillTone = fillOf({ picked, full, closed });
 
                     return (
                         <Pressable
                             key={day}
                             accessibilityRole="button"
-                            accessibilityState={{ selected: day === pending }}
+                            accessibilityState={{ selected: picked }}
                             accessibilityLabel={`${day}${closed ? ', closed' : ''}${
                                 counting ? ', still counting' : load ? `, ${load.count} booked` : ''
                             }${
@@ -221,11 +222,22 @@ export function CalendarSheet({
                             onPress={() => setPending(day)}
                             style={styles.cell}
                         >
+                            {/* A cell carries one edge or none. The pick is the
+                                fill, and an absolutely positioned child insets
+                                to the padding box — so a border under it stops
+                                the fill at its inner edge and leaves a ring of
+                                canvas between the two, which is what
+                                today-and-selected used to draw. Suppressing the
+                                edge rather than insetting the fill is also the
+                                answer to the design question underneath it:
+                                `fillOf` already rules that a picked day is a
+                                pick before it is anything else, and two markers
+                                on one cell say the same thing twice. */}
                             <View
                                 style={[
                                     styles.cellBox,
-                                    closed && styles.closedEdge,
-                                    day === today && styles.todayEdge,
+                                    !picked && closed && styles.closedEdge,
+                                    !picked && day === today && styles.todayEdge,
                                 ]}
                             >
                                 <View style={[styles.fill, { backgroundColor: fillTone }]} />
@@ -237,7 +249,7 @@ export function CalendarSheet({
                                     // the grid is read at a glance, so it wants 700.
                                     script="sans"
                                     weight="bold"
-                                    tone={day === pending ? 'inverse' : closed || past ? 'muted' : 'ink'}
+                                    tone={picked ? 'inverse' : closed || past ? 'muted' : 'ink'}
                                 >
                                     {parseKey(day).getDate()}
                                 </Text>
