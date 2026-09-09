@@ -49,6 +49,16 @@ export type CalendarSheetProps = {
     schedule: readonly ClinicDay[] | undefined;
     branches: readonly Branch[];
     branchId: string | null;
+    /**
+     * What picking a day is for. `open` is the day view: the pick moves the
+     * screen onto that day, and takes the branch with it when the day is
+     * busiest somewhere else — which is the whole reason the grid counts every
+     * branch. `book` is the booking page, where the branch is a field the desk
+     * has already answered above this sheet and a booking into Maadi does not
+     * become a booking into Nasr City because March is busier there. So the
+     * pick reports the day alone and every line about moving branch is dropped.
+     */
+    mode?: 'open' | 'book';
     onPick: (dateKey: string, branchId: string | null) => void;
     onClose: () => void;
 };
@@ -71,6 +81,7 @@ export function CalendarSheet({
     schedule,
     branches,
     branchId,
+    mode = 'open',
     onPick,
     onClose,
 }: CalendarSheetProps) {
@@ -114,12 +125,15 @@ export function CalendarSheet({
     // there leaves the stored id alone and lets the new date resolve somewhere
     // else entirely. `onPick` is given `pendingBranch` so the day that opens is
     // the one this summary just described.
-    const pendingBranch = pendingLoad?.busiest ?? branchId;
+    const pendingBranch = mode === 'book' ? branchId : (pendingLoad?.busiest ?? branchId);
     const pendingClosed = isClosed(pending, schedule, pendingBranch);
 
     const branchOf = (id: string | null) => branches.find((row) => row.id === id)?.name;
     const scopeLabel = scope ? (branchOf(scope) ?? 'this branch') : 'all branches';
-    const movesTo = pendingLoad?.busiest && pendingLoad.busiest !== branchId ? pendingLoad.busiest : null;
+    const movesTo =
+        mode === 'open' && pendingLoad?.busiest && pendingLoad.busiest !== branchId
+            ? pendingLoad.busiest
+            : null;
     const movesToName = branchOf(movesTo);
 
     function cycleScope() {
@@ -142,7 +156,13 @@ export function CalendarSheet({
             testID="calendar-sheet"
             footer={
                 <Button
-                    label={movesToName ? `Go to this day in ${movesToName}` : 'Go to this day'}
+                    label={
+                        mode === 'book'
+                            ? 'Use this day'
+                            : movesToName
+                              ? `Go to this day in ${movesToName}`
+                              : 'Go to this day'
+                    }
                     block
                     onPress={() => {
                         onPick(pending, pendingBranch);
