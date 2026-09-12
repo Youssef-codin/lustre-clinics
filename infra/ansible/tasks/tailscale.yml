@@ -1,0 +1,66 @@
+- name: Read Tailscale status
+  ansible.builtin.command: tailscale status --json
+  register: ts_status_raw
+  changed_when: false
+
+- name: Tailscale is logged in
+  ansible.builtin.assert:
+    that: (ts_status_raw.stdout | from_json).BackendState == 'Running'
+    fail_msg: Tailscale is not running. Log the machine in to the clinic tailnet with `sudo tailscale up` first.
+    quiet: true
+
+- name: Show this node
+  vars:
+    ts: "{{ ts_status_raw.stdout | from_json }}"
+  ansible.builtin.debug:
+    msg:
+      - "Tailnet:    {{ ts.CurrentTailnet.Name }}"
+      - "Owner:      {{ ts.User[ts.Self.UserID | string].LoginName }}"
+      - "IPs:        {{ ts.Self.TailscaleIPs | join(', ') }}"
+      - "MagicDNS:   {{ ts.Self.DNSName | regex_replace('\\.$', '') }}"
+      - "Key expiry: {{ ts.Self.KeyExpiry | default('disabled') }}{{ '  <- disable it in the admin console' if ts.Self.KeyExpiry is defined else '' }}"
+
+- name: Read Tailscale prefs
+  ansible.builtin.command: tailscale debug prefs
+  register: ts_prefs_raw
+  changed_when: false
+
+# The server only resolves public names. Letting Tailscale own /etc/resolv.conf
+# makes it fight dhcpcd over the file on every lease renewal.
+- name: Leave DNS to the LAN
+  ansible.builtin.command: tailscale set --accept-dns=false
+  when: (ts_prefs_raw.stdout | from_json).CorpDNS
+  changed_when: true
+
+# Tailscale SSH answers port 22 on the tailnet address itself and logs people in
+# by tailnet identity, so sshd's key-only and no-root rules never see those
+# logins; with the default policy any tailnet member got a root shell. With it
+# off, the tailnet reaches the real sshd, same rules as the LAN.
+#
+# Turning it off ends the Tailscale SSH session this play may be running over,
+# so the command is fired without waiting and the play reconnects through sshd.
+- name: Turn off Tailscale SSH
+  ansible.builtin.command: tailscale set --ssh=false
+  when: (ts_prefs_raw.stdout | from_json).RunSSH
+  async: 30
+  poll: 0
+  changed_when: true
+  register: ts_ssh_off
+
+- name: Reconnect through sshd
+  ansible.builtin.meta: reset_connection
+
+- name: Wait for the new connection
+  ansible.builtin.wait_for_connection:
+    delay: "{{ 5 if ts_ssh_off is changed else 0 }}"
+    timeout: 60
+
+- name: Re-read Tailscale prefs
+  ansible.builtin.command: tailscale debug prefs
+  register: ts_prefs_after
+  changed_when: false
+
+- name: Tailscale SSH is off
+  ansible.builtin.assert:
+    that: not (ts_prefs_after.stdout | from_json).RunSSH
+    quiet: true

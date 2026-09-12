@@ -1,0 +1,71 @@
+# Turns a fresh Debian 13 install (SSH server + standard utilities, logged in
+# to the clinic tailnet) into a clinic server. Run from infra/ansible:
+#
+#   ansible-playbook site.yml -K
+#
+# Re-running is safe; every task converges. See infra/README.md.
+- name: Clinic server
+  hosts: clinics
+  become: true
+
+  handlers:
+    - name: Restart logind
+      ansible.builtin.systemd_service:
+        name: systemd-logind
+        state: restarted
+
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Reload sshd
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: reloaded
+
+    - name: Load firewall
+      ansible.builtin.command: nft -f /etc/nftables.conf
+      changed_when: true
+
+    - name: Update GRUB
+      ansible.builtin.command: update-grub
+      changed_when: true
+
+    - name: Restart upower
+      ansible.builtin.systemd_service:
+        name: upower
+        state: restarted
+
+    - name: Apply sysctl
+      ansible.builtin.command: sysctl --system
+      changed_when: true
+
+    - name: Restart docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+
+  tasks:
+    - name: Tailscale
+      ansible.builtin.import_tasks: tasks/tailscale.yml
+      tags: [tailscale]
+
+    - name: Base system
+      ansible.builtin.import_tasks: tasks/base.yml
+      tags: [base]
+
+    - name: Power cuts
+      ansible.builtin.import_tasks: tasks/power.yml
+      tags: [power]
+
+    - name: SSH
+      ansible.builtin.import_tasks: tasks/ssh.yml
+      tags: [ssh]
+
+    - name: Firewall
+      ansible.builtin.import_tasks: tasks/firewall.yml
+      tags: [firewall]
+
+    - name: Docker
+      ansible.builtin.import_tasks: tasks/docker.yml
+      tags: [docker]

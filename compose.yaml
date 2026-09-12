@@ -6,6 +6,25 @@ services:
             POSTGRES_USER: lustre
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
             POSTGRES_DB: lustre
+        # Sized for the 4 GB clinic laptop, which also runs the API and the
+        # GlitchTip stack. Postgres' own defaults assume it has the machine; the
+        # cap stops a runaway query from pushing everything else into swap.
+        command:
+            - postgres
+            - -c
+            - shared_buffers=256MB
+            - -c
+            - effective_cache_size=768MB
+            - -c
+            - work_mem=8MB
+            - -c
+            - maintenance_work_mem=64MB
+            - -c
+            - max_connections=40
+        mem_limit: 1g
+        cpus: 2
+        # Docker's 64 MB default /dev/shm is too small for parallel queries.
+        shm_size: 256m
         volumes:
             - pgdata:/var/lib/postgresql/data
         healthcheck:

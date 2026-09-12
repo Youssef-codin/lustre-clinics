@@ -1,0 +1,52 @@
+# Keys go in before passwords come out, and a fresh connection is opened after
+# the reload, so a mistake fails the play while this session is still alive.
+- name: Admin keys are authorized
+  become: false
+  ansible.builtin.lineinfile:
+    path: ~/.ssh/authorized_keys
+    line: "{{ item }}"
+    create: true
+    mode: "0600"
+  loop: "{{ admin_pubkeys }}"
+
+- name: Key-only SSH
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/00-lustre.conf
+    content: |
+      # Managed by infra/ansible. sshd keeps the first value it reads, and the
+      # Include in sshd_config comes before everything else, so this file wins.
+      PubkeyAuthentication yes
+      AuthenticationMethods publickey
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitEmptyPasswords no
+      PermitRootLogin no
+      AllowUsers {{ ansible_user }}
+      MaxAuthTries 3
+      X11Forwarding no
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reload sshd
+
+- name: Apply SSH config
+  ansible.builtin.meta: flush_handlers
+
+- name: Read effective sshd settings
+  ansible.builtin.command: sshd -T
+  register: sshd_effective
+  changed_when: false
+
+- name: Passwords and root are refused
+  ansible.builtin.assert:
+    that:
+      - "'passwordauthentication no' in sshd_effective.stdout_lines"
+      - "'kbdinteractiveauthentication no' in sshd_effective.stdout_lines"
+      - "'permitrootlogin no' in sshd_effective.stdout_lines"
+    quiet: true
+
+- name: Drop the existing connection
+  ansible.builtin.meta: reset_connection
+
+- name: A new key-only login works
+  become: false
+  ansible.builtin.ping:

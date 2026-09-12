@@ -1,0 +1,77 @@
+- name: Base packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - smartmontools
+      - nftables
+      - python3-debian
+      - unattended-upgrades
+      - apt-listchanges
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: base_install
+  retries: 3
+  delay: 15
+  until: base_install is succeeded
+
+- name: Read timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: current_timezone
+  changed_when: false
+
+- name: Set timezone
+  ansible.builtin.command: timedatectl set-timezone {{ timezone }}
+  when: current_timezone.stdout != timezone
+  changed_when: true
+
+- name: Unattended security upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: "0644"
+
+- name: logind drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/logind.conf.d
+    state: directory
+    mode: "0755"
+
+# It lives on a shelf with the lid shut.
+- name: Never suspend on lid or keys
+  ansible.builtin.copy:
+    dest: /etc/systemd/logind.conf.d/10-lustre.conf
+    content: |
+      [Login]
+      HandleLidSwitch=ignore
+      HandleLidSwitchExternalPower=ignore
+      HandleLidSwitchDocked=ignore
+      HandleSuspendKey=ignore
+      HandleHibernateKey=ignore
+      IdleAction=ignore
+    mode: "0644"
+  notify: Restart logind
+
+- name: Mask sleep targets
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    masked: true
+  loop:
+    - sleep.target
+    - suspend.target
+    - hibernate.target
+    - hybrid-sleep.target
+    - suspend-then-hibernate.target
+
+- name: Read default boot target
+  ansible.builtin.command: systemctl get-default
+  register: default_target
+  changed_when: false
+
+- name: Boot to text mode
+  ansible.builtin.command: systemctl set-default multi-user.target
+  when: default_target.stdout != 'multi-user.target'
+  changed_when: true
