@@ -116,6 +116,33 @@ export function workingDaysIn(
     );
 }
 
+/**
+ * The days a booking may be offered: the strip's window, and one day beyond it
+ * that was asked for by name.
+ *
+ * The two are asked for differently and that is why they are not one list. The
+ * window answers "when can they come in", which is a question about the next
+ * couple of weeks and is worth fetching whole. A day in March is not that
+ * question — the desk already knows the day, from the phone call or from the
+ * screen it opened this from — and reaching it by widening the window would
+ * fetch a quarter of a year of appointments to offer one day of it, and hand
+ * the strip a hundred chips to scroll through.
+ *
+ * Keys are `YYYY-MM-DD`, so sorting them as strings sorts them as dates.
+ */
+export function daysOffered(
+    today: string,
+    windowDays: number,
+    farDay: string | null,
+    schedule: readonly ClinicDay[] | undefined,
+    branchId: string | null,
+): string[] {
+    const window = workingDaysIn(today, windowDays, schedule, branchId);
+    if (!farDay || farDay < today || window.includes(farDay)) return window;
+    if (isClosed(farDay, schedule, branchId)) return window;
+    return [...window, farDay].sort();
+}
+
 export interface Fortnight {
     slotsByDay: Map<string, Slot[]>;
     /** Only the days with room left for a visit this long — what a strip may offer. */

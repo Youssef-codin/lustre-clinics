@@ -49,6 +49,16 @@ export type CalendarSheetProps = {
     schedule: readonly ClinicDay[] | undefined;
     branches: readonly Branch[];
     branchId: string | null;
+    /**
+     * What picking a day is for. `open` is the day view: the pick moves the
+     * screen onto that day, and takes the branch with it when the day is
+     * busiest somewhere else — which is the whole reason the grid counts every
+     * branch. `book` is the booking page, where the branch is a field the desk
+     * has already answered above this sheet and a booking into Maadi does not
+     * become a booking into Nasr City because March is busier there. So the
+     * pick reports the day alone and every line about moving branch is dropped.
+     */
+    mode?: 'open' | 'book';
     onPick: (dateKey: string, branchId: string | null) => void;
     onClose: () => void;
 };
@@ -71,6 +81,7 @@ export function CalendarSheet({
     schedule,
     branches,
     branchId,
+    mode = 'open',
     onPick,
     onClose,
 }: CalendarSheetProps) {
@@ -114,12 +125,15 @@ export function CalendarSheet({
     // there leaves the stored id alone and lets the new date resolve somewhere
     // else entirely. `onPick` is given `pendingBranch` so the day that opens is
     // the one this summary just described.
-    const pendingBranch = pendingLoad?.busiest ?? branchId;
+    const pendingBranch = mode === 'book' ? branchId : (pendingLoad?.busiest ?? branchId);
     const pendingClosed = isClosed(pending, schedule, pendingBranch);
 
     const branchOf = (id: string | null) => branches.find((row) => row.id === id)?.name;
     const scopeLabel = scope ? (branchOf(scope) ?? 'this branch') : 'all branches';
-    const movesTo = pendingLoad?.busiest && pendingLoad.busiest !== branchId ? pendingLoad.busiest : null;
+    const movesTo =
+        mode === 'open' && pendingLoad?.busiest && pendingLoad.busiest !== branchId
+            ? pendingLoad.busiest
+            : null;
     const movesToName = branchOf(movesTo);
 
     function cycleScope() {
@@ -142,8 +156,18 @@ export function CalendarSheet({
             testID="calendar-sheet"
             footer={
                 <Button
-                    label={movesToName ? `Go to this day in ${movesToName}` : 'Go to this day'}
+                    label={
+                        mode === 'book'
+                            ? 'Use this day'
+                            : movesToName
+                              ? `Go to this day in ${movesToName}`
+                              : 'Go to this day'
+                    }
                     block
+                    // Paging to a month lands the pick on its first day, which
+                    // can be one the branch is shut — the cells cannot be tapped
+                    // onto such a day, but the button would still take it.
+                    disabled={mode === 'book' && (pendingClosed || pending < today)}
                     onPress={() => {
                         onPick(pending, pendingBranch);
                         onClose();
@@ -203,14 +227,21 @@ export function CalendarSheet({
                     const load = loads.get(day);
                     const closed = isClosed(day, schedule);
                     const past = day < today;
+                    const picked = day === pending;
                     const full = (load?.fill ?? 0) >= FULL_AT;
-                    const fillTone = fillOf({ picked: day === pending, full, closed });
+                    const fillTone = fillOf({ picked, full, closed });
+                    // On the booking page a day the branch cannot take is not a
+                    // pick at all: `daysOffered` would drop it and the booking
+                    // would land on some other day without a word. The day view
+                    // can look at any day, so it keeps every cell.
+                    const unbookable = mode === 'book' && (past || isClosed(day, schedule, branchId));
 
                     return (
                         <Pressable
                             key={day}
+                            disabled={unbookable}
                             accessibilityRole="button"
-                            accessibilityState={{ selected: day === pending }}
+                            accessibilityState={{ selected: picked, disabled: unbookable }}
                             accessibilityLabel={`${day}${closed ? ', closed' : ''}${
                                 counting ? ', still counting' : load ? `, ${load.count} booked` : ''
                             }${
@@ -221,11 +252,22 @@ export function CalendarSheet({
                             onPress={() => setPending(day)}
                             style={styles.cell}
                         >
+                            {/* A cell carries one edge or none. The pick is the
+                                fill, and an absolutely positioned child insets
+                                to the padding box — so a border under it stops
+                                the fill at its inner edge and leaves a ring of
+                                canvas between the two, which is what
+                                today-and-selected used to draw. Suppressing the
+                                edge rather than insetting the fill is also the
+                                answer to the design question underneath it:
+                                `fillOf` already rules that a picked day is a
+                                pick before it is anything else, and two markers
+                                on one cell say the same thing twice. */}
                             <View
                                 style={[
                                     styles.cellBox,
-                                    closed && styles.closedEdge,
-                                    day === today && styles.todayEdge,
+                                    !picked && closed && styles.closedEdge,
+                                    !picked && day === today && styles.todayEdge,
                                 ]}
                             >
                                 <View style={[styles.fill, { backgroundColor: fillTone }]} />
@@ -237,7 +279,7 @@ export function CalendarSheet({
                                     // the grid is read at a glance, so it wants 700.
                                     script="sans"
                                     weight="bold"
-                                    tone={day === pending ? 'inverse' : closed || past ? 'muted' : 'ink'}
+                                    tone={picked ? 'inverse' : closed || past || unbookable ? 'muted' : 'ink'}
                                 >
                                     {parseKey(day).getDate()}
                                 </Text>
@@ -313,15 +355,17 @@ export function CalendarSheet({
                 ) : (
                     <>
                         <Text variant="footnote" tone="muted">
-                            {pendingClosed
-                                ? 'Closed that day.'
-                                : pendingLoad && pendingLoad.count > 0
-                                  ? `${pendingLoad.used} of ${pendingLoad.slots} slots${
-                                        pendingLoad.firstAt
-                                            ? ` · first ${firstLabel(pendingLoad.firstAt)}`
-                                            : ''
-                                    }`
-                                  : 'Nothing booked yet.'}
+                            {mode === 'book' && pending < today
+                                ? 'That day has gone — pick one from today on.'
+                                : pendingClosed
+                                  ? 'Closed that day.'
+                                  : pendingLoad && pendingLoad.count > 0
+                                    ? `${pendingLoad.used} of ${pendingLoad.slots} slots${
+                                          pendingLoad.firstAt
+                                              ? ` · first ${firstLabel(pendingLoad.firstAt)}`
+                                              : ''
+                                      }`
+                                    : 'Nothing booked yet.'}
                         </Text>
                         {movesToName ? (
                             <Text variant="footnote" tone="accent">
