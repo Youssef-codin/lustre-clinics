@@ -144,9 +144,17 @@ export function ChairCard({
                 <Text variant="eyebrow" tone={eyebrow.tone}>
                     {eyebrow.label}
                 </Text>
-                <Text variant="eyebrow" tone="muted" style={styles.eyebrowEnd}>
-                    {`${slot.time} ${slot.meridiem}`}
-                </Text>
+                {/* The booked time, and only where it earns its place: on NEXT UP
+                    it is when they are due, and in the chair it is the slot being
+                    worked through. Once someone is waiting they are already here,
+                    and a bare time up here sat right above a labelled arrival time
+                    and read as something about now. The booked time is still on
+                    the detail sheet. */}
+                {kind === 'waiting' ? null : (
+                    <Text variant="eyebrow" tone="muted" style={styles.eyebrowEnd}>
+                        {`${slot.time} ${slot.meridiem}`}
+                    </Text>
+                )}
             </View>
 
             {/* The name goes to the person, the line under it to the visit —
