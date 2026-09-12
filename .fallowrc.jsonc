@@ -6,6 +6,8 @@
         // Mounted by hand in place of <AppShell /> to review the design system (see App.tsx).
         "packages/app/src/screens/dev/GalleryScreen.tsx"
     ],
+    // Props types are exported beside their component by convention; unused ones are not worth blocking on.
+    "rules": { "unused-types": "warn" },
     // Metro loads it through require.resolve in metro.config.js, never an import.
     "ignoreDependencies": ["react-native-svg-transformer"],
     "ignoreExports": [
