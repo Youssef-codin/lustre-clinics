@@ -9,6 +9,7 @@ import { type AppointmentStatus, ERROR_CODE, type Tooth } from '@lustre/shared';
 import { computeTotal } from '../../api/demo/rules';
 import { procedureLabel, splitDay } from './agenda';
 import {
+    daysOffered,
     firstFreeSlot,
     fortnightSlots,
     type Slot,
@@ -20,7 +21,7 @@ import {
 import { slotProgress, splitDeskDay, splitDoctorDay, standingFor } from './chair';
 import { RequestError } from './data/client';
 import type { Appointment, ProcedureCategory } from './data/types';
-import { dayDelay, delayLabel, delayReason, isProjected, ON_TIME, projectedStart } from './delay';
+import { dayDelay, delayLabel, isProjected, ON_TIME, projectedStart } from './delay';
 import { emptyDay } from './empty';
 import { describeError } from './errors';
 import { hoursFor, isClosed, openMinutes } from './hours';
@@ -939,6 +940,42 @@ describe('the fortnight a booking is offered', () => {
         expect(openDays).toEqual([MONDAY, NEXT_MONDAY]);
         expect(slotsByDay.get(MONDAY)?.[0]?.state).toBe('free');
     });
+
+    /**
+     * A check-up six months out is an ordinary thing to ask for at the desk, and
+     * the strip's window is not the limit on how far ahead the clinic can book —
+     * a day past it is reached by name and joins the days offered, rather than
+     * widening the window to a quarter of a year to reach one day of it.
+     */
+    describe('a day past the strip window', () => {
+        const MARCH_MONDAY = '2027-03-01';
+
+        it('joins the days offered, in date order', () => {
+            expect(daysOffered(MONDAY, 14, MARCH_MONDAY, SCHEDULE, 'b')).toEqual([
+                MONDAY,
+                NEXT_MONDAY,
+                MARCH_MONDAY,
+            ]);
+        });
+
+        it('is the whole list when the window itself has no working day', () => {
+            expect(daysOffered(MONDAY, 14, MARCH_MONDAY, SCHEDULE, 'other')).toEqual([]);
+            expect(daysOffered(MONDAY, 14, null, SCHEDULE, 'b')).toEqual([MONDAY, NEXT_MONDAY]);
+        });
+
+        it('is not offered on a day the branch is shut', () => {
+            // A Sunday: the schedule only has weekday 1.
+            expect(daysOffered(MONDAY, 14, '2027-03-07', SCHEDULE, 'b')).toEqual([MONDAY, NEXT_MONDAY]);
+        });
+
+        it('does not double up a day the window already covers', () => {
+            expect(daysOffered(MONDAY, 14, NEXT_MONDAY, SCHEDULE, 'b')).toEqual([MONDAY, NEXT_MONDAY]);
+        });
+
+        it('is ignored when it is in the past', () => {
+            expect(daysOffered(MONDAY, 14, '2026-08-03', SCHEDULE, 'b')).toEqual([MONDAY, NEXT_MONDAY]);
+        });
+    });
 });
 
 /**
@@ -1061,7 +1098,6 @@ describe('a day running late', () => {
 
         expect(delay).toEqual(ON_TIME);
         expect(delayLabel(delay)).toBeNull();
-        expect(delayReason(delay)).toBeNull();
     });
 
     // The overrun is counted to the minute and reported to the minute, but what
@@ -1074,8 +1110,8 @@ describe('a day running late', () => {
 
         expect(delay.fromChair).toBe(12);
         expect(delay.minutes).toBe(15);
-        expect(delayLabel(delay)).toBe('15 min late');
-        expect(delayReason(delay)).toBe('the chair is 12 min over');
+        // The headline is the overrun itself; only the slide is rounded.
+        expect(delayLabel(delay)).toBe('12 min late');
     });
 
     // Taking the walk-in already moved the booked day: the server seated it at
@@ -1095,7 +1131,6 @@ describe('a day running late', () => {
 
         expect(delay).toEqual(ON_TIME);
         expect(delayLabel(delay)).toBeNull();
-        expect(delayReason(delay)).toBeNull();
     });
 
     it('slides by the chair alone when a walk-in is waiting behind it', () => {
@@ -1110,7 +1145,7 @@ describe('a day running late', () => {
 
         expect(delay.fromChair).toBe(12);
         expect(delay.minutes).toBe(15);
-        expect(delayReason(delay)).toBe('the chair is 12 min over');
+        expect(delayLabel(delay)).toBe('12 min late');
     });
 
     // The reviewer's case, as the desk sees it: the chair is on time and ends

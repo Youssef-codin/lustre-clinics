@@ -12,7 +12,7 @@
  * guess while the first is this screen's.
  */
 import { memo, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
     Banner,
     Button,
@@ -42,7 +42,7 @@ import { CalendarSheet } from './components/CalendarSheet';
 import { ClosedDay } from './components/ClosedDay';
 import { DayHeader } from './components/DayHeader';
 import { DayEmpty, DayError, DaySkeleton } from './components/DayStates';
-import { ChatIcon, ClockIcon } from './components/icons';
+import { ChatIcon, ClockIcon, CloseIcon } from './components/icons';
 import { NowCard } from './components/NowCard';
 import { Reminders } from './components/Reminders';
 import { VisitPaymentScreen } from './components/VisitPaymentScreen';
@@ -59,7 +59,7 @@ import {
     type Visit,
     visitForAppointment,
 } from './data';
-import { dayDelay, delayLabel, delayReason } from './delay';
+import { dayDelay, delayLabel } from './delay';
 import { describeError } from './errors';
 import { isClosed } from './hours';
 import { busiestBranch, holdsSlot } from './month';
@@ -383,6 +383,14 @@ function DayScreenView({ onBookingChange, onOpenRecord, open, goHome = 0 }: DayS
         [appointments, isToday, nowMinutes, arrivals.data],
     );
 
+    // The desk can close the late banner once it has been read. It stays closed
+    // for as long as the day is still running late, and comes back the next time
+    // the day falls behind: dropped the moment the delay clears, adjusted during
+    // render rather than in an effect.
+    const lateText = delayLabel(delay);
+    const [lateDismissed, setLateDismissed] = useState(false);
+    if (lateDismissed && !lateText) setLateDismissed(false);
+
     // The calendar counts every branch, so a picked day carries the branch it
     // is busiest in; following it is what stops the grid promising a day the
     // day view then draws empty. A day with nothing booked carries no branch.
@@ -632,19 +640,20 @@ function DayScreenView({ onBookingChange, onOpenRecord, open, goHome = 0 }: DayS
                     >
                         {isToday ? <BeforeThis appointments={past} onSelect={openDetail} /> : null}
 
-                        {delayLabel(delay) ? (
+                        {lateText && !lateDismissed ? (
                             <View style={styles.late}>
-                                <ClockIcon size={14} stroke={color.due} />
-                                <View style={styles.grow}>
-                                    <Text variant="footnote" weight="bold" tone="due">
-                                        Running {delayLabel(delay)}
-                                    </Text>
-                                    {delayReason(delay) ? (
-                                        <Text variant="caption" tone="muted">
-                                            {delayReason(delay)} — booked times below show what they now mean.
-                                        </Text>
-                                    ) : null}
-                                </View>
+                                <ClockIcon size={13} stroke={color.due} />
+                                <Text variant="footnote" weight="bold" tone="due" style={styles.lateText}>
+                                    Running {lateText}
+                                </Text>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Dismiss"
+                                    hitSlop={space[3]}
+                                    onPress={() => setLateDismissed(true)}
+                                >
+                                    <CloseIcon size={14} stroke={color.due} />
+                                </Pressable>
                             </View>
                         ) : null}
 
@@ -921,16 +930,17 @@ const styles = StyleSheet.create({
     body: { flex: 1 },
     agenda: { paddingBottom: size.nav, gap: space[3] },
     tabs: { paddingHorizontal: size.gutter, paddingBottom: space[3] },
+    lateText: { flex: 1 },
     late: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: space[2],
+        alignItems: 'center',
+        gap: space[1.5],
         marginHorizontal: size.gutter,
-        padding: space[3],
+        paddingVertical: space[2],
+        paddingHorizontal: space[3],
         borderRadius: radius.lg,
         borderWidth: border.hair,
         borderColor: color.dueSoft,
         backgroundColor: color.dueSoft,
     },
-    grow: { flex: 1, minWidth: 0, gap: space[0.5] },
 });

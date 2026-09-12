@@ -83,9 +83,11 @@ export function replaceTop<T>(stack: RouteStack<T>, route: T): RouteStack<T> {
 }
 
 /**
- * Down to one route, without an animation. For a jump from outside the cluster
- * — the shell landing on a patient's record from another tab — where nothing on
- * the way out is worth watching leave.
+ * Down to one route, with nothing left to watch leave. For a jump from outside
+ * the cluster — the shell landing on a patient's record from another tab —
+ * where whatever was stacked is not what the user came from. The arriving route
+ * is a fresh entry and still slides in; it is the outgoing panes that are
+ * dropped rather than animated.
  */
 export function resetTo<T>(stack: RouteStack<T>, route: T): RouteStack<T> {
     return { open: [{ id: nextId(stack), route }], leaving: [] };

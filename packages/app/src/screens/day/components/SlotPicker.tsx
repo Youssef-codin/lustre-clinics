@@ -21,7 +21,15 @@
  * has gone is as much use as a Friday it is shut — so `BookingScreen` reads the
  * whole fortnight and hands down what is left. What is offered is what can be
  * booked, at every scale.
+ *
+ * The strip ends in a way out of it, because a fortnight is the near question
+ * and not the only one: a check-up booked six months ahead is an ordinary thing
+ * to ask for at the desk, and before this the strip was the only answer to
+ * "which day", so it was also the limit on how far ahead the clinic could book
+ * at all. The calendar is the same one the day view opens, so "is March busy"
+ * is asked and answered the same way wherever it comes up.
  */
+import { useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Callout, Chip } from '../../../components/ui';
 import { border, color, radius, space, Text } from '../../../theme';
@@ -29,6 +37,7 @@ import type { Slot } from '../booking';
 import type { RequestError } from '../data';
 import { describeError } from '../errors';
 import { clock12, relativeDayLabel } from '../time';
+import { CalendarIcon } from './icons';
 
 export type SlotPickerProps = {
     dateKey: string;
@@ -37,6 +46,8 @@ export type SlotPickerProps = {
     /** The fortnight is still being read: "no days" is not the answer yet. */
     daysLoading: boolean;
     onPickDate: (dateKey: string) => void;
+    /** Open the calendar, for a day further out than the strip reaches. */
+    onPickFurtherDate: () => void;
     slotMinutes: number | null;
     onPickSlot: (minutes: number | null) => void;
     slots: readonly Slot[];
@@ -54,6 +65,7 @@ export function SlotPicker({
     days,
     daysLoading,
     onPickDate,
+    onPickFurtherDate,
     slotMinutes,
     onPickSlot,
     slots,
@@ -65,6 +77,15 @@ export function SlotPicker({
 }: SlotPickerProps) {
     const picked = slots.find((slot) => slot.minutes === slotMinutes) ?? null;
     const free = slots.filter((slot) => slot.state === 'free');
+
+    const strip = useRef<ScrollView>(null);
+    // A day off the calendar sorts after every day in the window, so it is
+    // always the last chip — and the strip starts at its own beginning, which
+    // left the day just chosen sitting past the right edge of a strip that
+    // looked like nothing was selected at all. The content changing width is
+    // the moment that day joined it, and the only moment worth scrolling on:
+    // every other day the strip offers is reachable without moving it.
+    const stripEndsOnPick = days.length > 0 && days[days.length - 1] === dateKey;
 
     return (
         <View style={styles.step}>
@@ -78,29 +99,47 @@ export function SlotPicker({
                     <Text variant="subhead" tone="muted">
                         Reading the fortnight…
                     </Text>
-                ) : days.length === 0 ? (
-                    <Text variant="subhead" tone="muted">
-                        {branchName ?? 'This branch'} has no day in the next fortnight with room for a visit
-                        this long. Try a shorter one, or another branch.
-                    </Text>
                 ) : (
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.strip}
-                    >
-                        {days.map((key) => (
+                    <>
+                        <ScrollView
+                            ref={strip}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.strip}
+                            onContentSizeChange={() => {
+                                if (stripEndsOnPick) strip.current?.scrollToEnd({ animated: false });
+                            }}
+                        >
+                            {days.map((key) => (
+                                <Chip
+                                    key={key}
+                                    label={relativeDayLabel(key)}
+                                    selected={key === dateKey}
+                                    onPress={() => {
+                                        onPickDate(key);
+                                        onPickSlot(null);
+                                    }}
+                                />
+                            ))}
+                            {/* Last, not first: the near days are what most
+                                bookings want, and a control ahead of them would
+                                be passed over on every one of those. */}
                             <Chip
-                                key={key}
-                                label={relativeDayLabel(key)}
-                                selected={key === dateKey}
-                                onPress={() => {
-                                    onPickDate(key);
-                                    onPickSlot(null);
-                                }}
+                                label="Another date"
+                                variant="new"
+                                icon={<CalendarIcon size={15} stroke={color.accent} />}
+                                onPress={onPickFurtherDate}
+                                testID="booking-further-date"
                             />
-                        ))}
-                    </ScrollView>
+                        </ScrollView>
+
+                        {days.length === 0 ? (
+                            <Text variant="subhead" tone="muted">
+                                {branchName ?? 'This branch'} has no day in the next fortnight with room for a
+                                visit this long. Try a shorter one, another branch, or a date further out.
+                            </Text>
+                        ) : null}
+                    </>
                 )}
             </View>
 

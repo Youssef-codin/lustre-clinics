@@ -1,10 +1,11 @@
 /**
- * The doctor's two headline pieces from `doctor-day-view.html`: the strip and
- * the black card. The strip is whoever is in the chair, reduced to a name and
- * one button; the card is what comes after. With nothing after, the chair
- * takes the card back and gets its progress bar and Finish button there.
+ * The doctor's two headline pieces: the strip and the black card. The strip is
+ * whoever is in the chair while the card belongs to what comes after; with
+ * nothing after, the chair takes the card back. Both forms say IN THE CHAIR and
+ * both carry the bar and a Finish button, so the chair reads as the same thing
+ * in either.
  *
- * The card puts a clock on two things and they run off different stamps, which
+ * The chair puts a clock on two things and they run off different stamps, which
  * is the whole point of there being two. The waited counter measures the queue
  * and starts at `checked_in_at`; the progress bar measures the visit and starts
  * at `in_chair_at`. On a patient who walked into an empty chair they are the
@@ -15,8 +16,7 @@ import { Button, Dot } from '../../../components/ui';
 import { border, color, radius, shadow, size, space, Text } from '../../../theme';
 import { slotProgress } from '../chair';
 import type { Appointment } from '../data';
-import { minutesOfDay, time12 } from '../time';
-import { useNowSeconds } from '../useNow';
+import { formatDuration, formatSpan, minutesOfDay, time12 } from '../time';
 import { ChairProgress } from './ChairProgress';
 import { CheckIcon, ClockIcon, ProcedureIcon } from './icons';
 
@@ -32,10 +32,20 @@ export type ChairStripProps = {
 };
 
 /**
- * The strip reads its own clock rather than taking the screen's. Its label is
- * the same count the card's bar draws, and on the shared thirty-second tick the
- * seconds would have sat on `:00` for half a minute at a time — a stopped
- * stopwatch, which is worse than no seconds at all.
+ * The chair, while the black card belongs to whoever comes after it.
+ *
+ * It was a name, a line and a button, and beside the AFTER THIS rows it read as
+ * one more of them. There is one practitioner and one chair, so who is in it is
+ * a fact to state rather than a row to infer: the strip names itself IN THE
+ * CHAIR in the card form's own words, and carries the card form's bar. So the
+ * chair looks like the same thing whether or not anything follows it.
+ *
+ * The two clocks stay two. The bar counts the visit from `in_chair_at`; the
+ * waiting card under it counts the queue from `checked_in_at`.
+ *
+ * It stays white. Dark, it would compete with the card for the place the eye
+ * lands first, and the card is what the doctor turns to next — which is the
+ * reason the strip form exists at all.
  */
 export function ChairStrip({
     appointment,
@@ -46,42 +56,56 @@ export function ChairStrip({
     onOpenRecord,
     onFinish,
 }: ChairStripProps) {
-    const progress = slotProgress(appointment, useNowSeconds(), seatedAt);
+    const starts = minutesOfDay(appointment.startsAt);
 
     return (
         <View style={styles.strip} testID="chair-strip">
-            <Dot tone="wa" size={7} pulse />
+            <View style={styles.stripHead}>
+                <View style={styles.stripBody}>
+                    <View style={styles.eyebrowRow}>
+                        <Dot tone="wa" size={7} />
+                        <Text variant="eyebrow" tone="successText">
+                            IN THE CHAIR
+                        </Text>
+                    </View>
 
-            <View style={styles.stripBody}>
-                <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${appointment.patient.name}'s record`}
-                    onPress={() => onOpenRecord(appointment.patient.id)}
-                    style={({ pressed }) => [styles.stripName, pressed && styles.namePressed]}
-                >
-                    <Text variant="callout" weight="semibold" numberOfLines={1}>
-                        {appointment.patient.name}
-                    </Text>
-                </Pressable>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${appointment.patient.name}'s record`}
+                        onPress={() => onOpenRecord(appointment.patient.id)}
+                        style={({ pressed }) => [styles.stripName, pressed && styles.namePressed]}
+                    >
+                        <Text variant="headline" weight="semibold" numberOfLines={1}>
+                            {appointment.patient.name}
+                        </Text>
+                    </Pressable>
 
-                <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`In the chair: ${appointment.patient.name}`}
-                    onPress={() => onOpen(appointment)}
-                >
-                    <Text variant="footnote" tone="muted" numberOfLines={1}>
-                        {procedure ? `${procedure} · ${progress.label}` : progress.label}
-                    </Text>
-                </Pressable>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`In the chair: ${appointment.patient.name}`}
+                        onPress={() => onOpen(appointment)}
+                    >
+                        <Text variant="footnote" tone="muted" numberOfLines={1}>
+                            {procedure ?? formatSpan(starts, starts + appointment.durationMinutes)}
+                        </Text>
+                    </Pressable>
+                </View>
+
+                <Button
+                    label="Finish"
+                    size="md"
+                    loading={finishing}
+                    icon={<CheckIcon size={13} stroke={color.inverse} />}
+                    style={styles.finish}
+                    onPress={() => onFinish(appointment)}
+                />
             </View>
 
-            <Button
-                label="Finish"
-                size="md"
-                loading={finishing}
-                icon={<CheckIcon size={13} stroke={color.inverse} />}
-                style={styles.finish}
-                onPress={() => onFinish(appointment)}
+            <ChairProgress
+                appointment={appointment}
+                seatedAt={seatedAt}
+                onDark={false}
+                style={styles.stripProgress}
             />
         </View>
     );
@@ -135,6 +159,7 @@ export function ChairCard({
     const eyebrow = EYEBROW[kind];
     const slot = time12(appointment.startsAt);
     const progress = slotProgress(appointment, nowMinutes, seatedAt);
+    const until = minutesOfDay(appointment.startsAt) - nowMinutes;
 
     return (
         <View style={styles.card} testID="chair-card">
@@ -143,9 +168,17 @@ export function ChairCard({
                 <Text variant="eyebrow" tone={eyebrow.tone}>
                     {eyebrow.label}
                 </Text>
-                <Text variant="eyebrow" tone="muted" style={styles.eyebrowEnd}>
-                    {`${slot.time} ${slot.meridiem}`}
-                </Text>
+                {/* The booked time, and only where it earns its place: on NEXT UP
+                    it is when they are due, and in the chair it is the slot being
+                    worked through. Once someone is waiting they are already here,
+                    and a bare time up here sat right above a labelled arrival time
+                    and read as something about now. The booked time is still on
+                    the detail sheet. */}
+                {kind === 'waiting' ? null : (
+                    <Text variant="eyebrow" tone="muted" style={styles.eyebrowEnd}>
+                        {`${slot.time} ${slot.meridiem}`}
+                    </Text>
+                )}
             </View>
 
             {/* The name goes to the person, the line under it to the visit —
@@ -196,7 +229,7 @@ export function ChairCard({
             {kind === 'next' ? (
                 <View style={styles.footer}>
                     <Text variant="title2" weight="semibold" tone="inverse" style={styles.until}>
-                        {untilLabel(minutesOfDay(appointment.startsAt) - nowMinutes)}
+                        {until > 0 ? `in ${formatDuration(until)}` : `${formatDuration(-until)} late`}
                     </Text>
                 </View>
             ) : null}
@@ -218,17 +251,11 @@ function Waited({ checkedInAt, nowMinutes }: { checkedInAt?: string; nowMinutes:
             <View style={styles.waited}>
                 <ClockIcon size={14} stroke={color.due} width={2.2} />
                 <Text variant="subhead" weight="semibold" tone="due">
-                    {`waiting ${waited} min`}
+                    {`waiting ${formatDuration(waited)}`}
                 </Text>
             </View>
         </View>
     );
-}
-
-function untilLabel(until: number): string {
-    if (until <= 0) return `${Math.abs(until)} min late`;
-    if (until < 60) return `in ${until} min`;
-    return `in ${Math.floor(until / 60)}h ${until % 60}m`;
 }
 
 // The chair's dot holds still: its card carries the progress bar, and the bar
@@ -245,21 +272,20 @@ const EYEBROW = {
 
 const styles = StyleSheet.create({
     strip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space[3],
         marginHorizontal: size.bleed,
         marginBottom: space[2.5],
-        paddingVertical: space[2.5],
+        paddingVertical: space[3],
         paddingStart: space[3.5],
-        paddingEnd: space[2.5],
+        paddingEnd: space[3],
         backgroundColor: color.surface,
         borderRadius: radius.xl,
         borderWidth: border.hair,
         borderColor: color.line,
         boxShadow: shadow.pill,
     },
-    stripBody: { flex: 1, gap: space[0.5] },
+    stripHead: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+    stripBody: { flex: 1, gap: space[1] },
+    stripProgress: { marginTop: space[3] },
     finish: { borderRadius: radius.full, paddingHorizontal: space[3.5] },
 
     card: {

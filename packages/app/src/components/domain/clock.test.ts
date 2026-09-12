@@ -103,6 +103,15 @@ describe('a length of time', () => {
         // The figure the chair's bar was reporting raw.
         expect(formatDuration(223)).toBe('3h 43m');
     });
+
+    // Elapsed and remaining time on the day cards goes through this too. Each
+    // of these was drawn raw on a device: a patient who checked in at 11:39,
+    // and a next-up card two hours out.
+    it('turns over the waits and countdowns the day cards used to print in minutes', () => {
+        expect(formatDuration(467)).toBe('7h 47m');
+        expect(formatDuration(127)).toBe('2h 7m');
+        expect(formatDuration(341)).toBe('5h 41m');
+    });
 });
 
 describe('a count that is running', () => {
