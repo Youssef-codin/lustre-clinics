@@ -5,24 +5,18 @@
 export { RequestError } from './client';
 export type { BookedProcedure, PatientRef } from './day';
 export { amend, api, arrive, checkInTimes, visitForAppointment } from './day';
-export type { MutationHandlers, MutationResult, QueryResult, QueryStatus } from './hooks';
+export type { QueryResult } from './hooks';
 export { useLocalMutation, useLocalQuery } from './hooks';
 export type {
     Appointment,
     AppointmentProcedure,
-    AppointmentRow,
     Branch,
     ClinicDay,
-    ClinicSettings,
     EmbeddedPatient,
     Patient,
     PendingReminder,
     ProcedureCategory,
     ProcedureRow,
-    ProcedureType,
     Visit,
-    VisitLine,
     VisitPayment,
-    VisitRow,
-    WalkInResult,
 } from './types';

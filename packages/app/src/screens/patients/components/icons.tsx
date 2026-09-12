@@ -11,7 +11,7 @@
 import { MessageCircle, Pencil, Phone, Plus, Search, X } from 'lucide-react-native';
 import { color } from '../../../theme';
 
-export type IconProps = {
+type IconProps = {
     size?: number;
     stroke?: string;
     width?: number;

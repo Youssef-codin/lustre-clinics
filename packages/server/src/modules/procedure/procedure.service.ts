@@ -23,7 +23,7 @@ import type {
 
 export type Procedure = typeof procedureTypes.$inferSelect;
 
-export interface ProcedureNode extends Procedure {
+interface ProcedureNode extends Procedure {
     children: Procedure[];
     selectable: boolean;
 }

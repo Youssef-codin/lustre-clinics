@@ -54,7 +54,6 @@ export const balanceSummaryInput = z.object(range);
 
 export const balanceTakingsInput = z.object(range);
 
-export type ByPatientInput = z.infer<typeof byPatientInput>;
 export type SettleInput = z.infer<typeof settleInput>;
 export type BalanceSummaryInput = z.infer<typeof balanceSummaryInput>;
 export type BalanceTakingsInput = z.infer<typeof balanceTakingsInput>;

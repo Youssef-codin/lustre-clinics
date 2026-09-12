@@ -8,7 +8,9 @@ import { useServerEvents } from './live';
 import { queryClient } from './queryClient';
 import { startConnectionRecovery } from './recovery';
 
-export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
+const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
+
+export { useTRPC };
 
 function ServerEvents({ children }: { children: ReactNode }) {
     useServerEvents();

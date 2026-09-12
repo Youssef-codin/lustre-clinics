@@ -8,7 +8,7 @@ import { branches } from '../../db/schema.ts';
 import { AppError } from '../../errors/AppError.ts';
 import type { CreateBranchInput, ListBranchInput, UpdateBranchInput } from './branch.schema.ts';
 
-export type Branch = typeof branches.$inferSelect;
+type Branch = typeof branches.$inferSelect;
 
 export const branchService = {
     async list(input: ListBranchInput = { includeInactive: false }): Promise<Branch[]> {

@@ -22,7 +22,7 @@ import { broadcast } from '../../ws/index.ts';
 import { branchService } from '../branch/branch.service.ts';
 import type { SetClinicDayInput, UpdateSettingsInput } from './settings.schema.ts';
 
-export interface Settings {
+interface Settings {
     clinicName: string;
     clinicPhone: string | null;
     durationOptions: number[];
@@ -66,7 +66,7 @@ async function readRow(): Promise<SettingsRow> {
     return seeded;
 }
 
-export interface ClinicDay {
+interface ClinicDay {
     weekday: number;
     branchId: string;
     opensAt: string;

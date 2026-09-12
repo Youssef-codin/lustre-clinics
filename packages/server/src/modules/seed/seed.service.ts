@@ -35,9 +35,9 @@ import { appointmentService } from '../appointment/appointment.service.ts';
 import { visitService } from '../visit/visit.service.ts';
 
 /** How far a patient has got by the time the seed finishes. */
-export type Reach = 'waiting' | 'chair' | 'desk';
+type Reach = 'waiting' | 'chair' | 'desk';
 
-export interface LiveArrival {
+interface LiveArrival {
     patientId: string;
     branchId: string;
     startsAt: Date;
@@ -56,7 +56,7 @@ export interface LiveArrival {
     note?: string;
 }
 
-export interface LiveSeatResult {
+interface LiveSeatResult {
     appointmentId: string;
     visitId: string;
 }

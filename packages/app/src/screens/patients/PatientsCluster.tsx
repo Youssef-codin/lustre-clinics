@@ -51,7 +51,7 @@ export type OpenRecordRequest = {
     backLabel?: string;
 };
 
-export type PatientsClusterProps = {
+type PatientsClusterProps = {
     open?: OpenRecordRequest;
     /**
      * Bumped by the shell when the Patients tab is tapped while it is already

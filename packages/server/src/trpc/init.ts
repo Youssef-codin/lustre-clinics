@@ -24,7 +24,7 @@ export function createContext() {
     return { db };
 }
 
-export type Context = ReturnType<typeof createContext>;
+type Context = ReturnType<typeof createContext>;
 
 function trpcCodeFor(httpStatus: number): TRPCError['code'] {
     switch (httpStatus) {

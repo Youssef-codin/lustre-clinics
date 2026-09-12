@@ -42,9 +42,9 @@ import type {
     SetProceduresInput,
 } from './visit.schema.ts';
 
-export type VisitRow = typeof visits.$inferSelect;
+type VisitRow = typeof visits.$inferSelect;
 
-export interface VisitLine {
+interface VisitLine {
     id: string;
     procedureId: string;
     name: string;
@@ -56,7 +56,7 @@ export interface VisitLine {
     lineTotal: number;
 }
 
-export interface VisitPayment {
+interface VisitPayment {
     id: string;
     amount: number;
     method: string;
@@ -64,7 +64,7 @@ export interface VisitPayment {
     paidAt: Date;
 }
 
-export interface Visit extends VisitRow {
+interface Visit extends VisitRow {
     procedures: VisitLine[];
     payments: VisitPayment[];
     paidTotal: number;

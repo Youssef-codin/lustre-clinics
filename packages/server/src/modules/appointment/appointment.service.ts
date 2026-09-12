@@ -51,7 +51,7 @@ import type {
 export type AppointmentRow = typeof appointments.$inferSelect;
 
 /** §7 — a planned procedure, with the catalogue name resolved for the client. */
-export interface AppointmentLine {
+interface AppointmentLine {
     id: string;
     procedureId: string;
     name: string;
@@ -60,7 +60,7 @@ export interface AppointmentLine {
     note: string | null;
 }
 
-export interface AppointmentWithPatient extends AppointmentRow {
+interface AppointmentWithPatient extends AppointmentRow {
     patient: { id: string; name: string; phone: string };
     procedures: AppointmentLine[];
 }

@@ -77,8 +77,8 @@ import { Pane } from './components/Pane';
 import { ErrorState, SkeletonRows } from './components/QueryStates';
 import { errorText } from './data/errors';
 
-export type ProcedureNode = RouterOutput['procedure']['tree'][number];
-export type Procedure = ProcedureNode['children'][number];
+type ProcedureNode = RouterOutput['procedure']['tree'][number];
+type Procedure = ProcedureNode['children'][number];
 
 /** What the editor pane was opened to do. */
 type EditorRoute =

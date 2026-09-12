@@ -35,7 +35,7 @@ import type {
     UpdateCustomQuestionInput,
 } from './customQuestion.schema.ts';
 
-export type CustomQuestion = typeof customQuestions.$inferSelect;
+type CustomQuestion = typeof customQuestions.$inferSelect;
 
 export type Answers = Record<string, unknown>;
 

@@ -11,8 +11,13 @@
     // Metro loads it through require.resolve in metro.config.js, never an import.
     "ignoreDependencies": ["react-native-svg-transformer"],
     "ignoreExports": [
-        // The design system's public surface: a component and its props are exported before a screen uses them.
-        { "file": "packages/app/src/components/ui/index.ts", "exports": ["*"] },
+        // The shared component libraries and theme tokens are public surface: a component, its props
+        // and a token type are exported before a screen uses them.
+        { "file": "packages/app/src/components/ui/**", "exports": ["*"] },
+        { "file": "packages/app/src/components/domain/**", "exports": ["*"] },
+        { "file": "packages/app/src/theme/**", "exports": ["*"] },
+        // api/README.md prescribes it for the double-booking message, ahead of the screens adopting it.
+        { "file": "packages/app/src/api/{errors,index}.ts", "exports": ["isSlotOverlap"] },
         // `money.ts` is the renderer-free arithmetic; MoneyValue.tsx wraps it with the layout direction.
         { "file": "packages/app/src/components/domain/MoneyValue.tsx", "exports": ["formatMoney"] },
         { "file": "packages/app/src/components/domain/money.ts", "exports": ["formatMoney"] },

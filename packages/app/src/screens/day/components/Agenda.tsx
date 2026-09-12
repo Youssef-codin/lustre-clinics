@@ -195,7 +195,7 @@ function RowBody({
     );
 }
 
-export type CheckInControlProps = {
+type CheckInControlProps = {
     appointment: Appointment;
     loading: boolean;
     /** `checked_in` is arrived, not seated — only the queue's head reads as IN. */

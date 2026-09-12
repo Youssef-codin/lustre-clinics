@@ -6,7 +6,6 @@
  * and get the same shapes back.
  */
 export { subscribeToDemoEvents } from './events';
-export type { DemoMode } from './flag';
 export { enableDemoMode, isDemoMode, useDemoMode } from './flag';
 export { demoLink } from './link';
 
