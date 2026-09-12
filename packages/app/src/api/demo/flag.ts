@@ -102,7 +102,7 @@ export async function enableDemoMode(): Promise<void> {
  * A build that shipped `extra.demo` stays a demo: clearing the flag would leave
  * it pointed at a server it was never given an address for.
  */
-export async function disableDemoMode(): Promise<void> {
+async function disableDemoMode(): Promise<void> {
     if (shipped) return;
     transitions += 1;
     emit({ hydrated: true, enabled: false });

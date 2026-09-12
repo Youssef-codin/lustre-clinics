@@ -24,7 +24,7 @@
 // non-empty values; `''` is the third.
 import type { CustomQuestion, QuestionKind } from '../data/types';
 
-export const EDITABLE_KINDS = ['text', 'number', 'boolean', 'select'] as const;
+const EDITABLE_KINDS = ['text', 'number', 'boolean', 'select'] as const;
 
 export type EditableKind = (typeof EDITABLE_KINDS)[number];
 

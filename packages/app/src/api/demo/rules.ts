@@ -68,7 +68,7 @@ function hex(length: number, high = 0): string {
 
 // --- refs (`server/src/util/ref.ts`) ----------------------------------------
 
-export function randomRefSuffix(): string {
+function randomRefSuffix(): string {
     let out = '';
     for (let i = 0; i < REF_RANDOM_LENGTH; i += 1) {
         out += REF_ALPHABET[Math.floor(Math.random() * REF_ALPHABET.length)];
@@ -86,7 +86,7 @@ export function buildPatientRef(): string {
 
 // --- time (`server/src/util/time.ts`) ---------------------------------------
 
-export function refDatePart(at: Date, offsetMinutes = 0): string {
+function refDatePart(at: Date, offsetMinutes = 0): string {
     const local = new Date(at.getTime() + offsetMinutes * 60_000);
     const dd = String(local.getUTCDate()).padStart(2, '0');
     const mm = String(local.getUTCMonth() + 1).padStart(2, '0');

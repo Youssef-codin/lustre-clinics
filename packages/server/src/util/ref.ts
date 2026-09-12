@@ -14,7 +14,7 @@
 import { REF_ALPHABET, REF_RANDOM_LENGTH } from '@lustre/shared';
 import { refDatePart } from './time.ts';
 
-export function randomRefSuffix(): string {
+function randomRefSuffix(): string {
     const bytes = new Uint8Array(REF_RANDOM_LENGTH);
     crypto.getRandomValues(bytes);
 

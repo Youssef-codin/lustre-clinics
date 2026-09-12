@@ -69,7 +69,7 @@ let opening: Promise<void> | null = null;
  * Opened once, on the first request rather than at import: a seed that runs
  * during module evaluation runs on every launch of the real app too.
  */
-export function openDemoDb(): Promise<void> {
+function openDemoDb(): Promise<void> {
     if (isOpen()) return Promise.resolve();
     if (opening) return opening;
 

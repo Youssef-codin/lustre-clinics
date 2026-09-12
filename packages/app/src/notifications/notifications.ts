@@ -76,7 +76,7 @@ async function ensureChannel(): Promise<void> {
  * someone to swat the prompt away, and Android stops showing it anyway. The way
  * back is Settings → Reminders, which says the OS is blocking it.
  */
-export async function ensurePermission(): Promise<boolean> {
+async function ensurePermission(): Promise<boolean> {
     const current = await Notifications.getPermissionsAsync();
     if (current.granted) return true;
     if (!current.canAskAgain) return false;
@@ -90,7 +90,7 @@ export async function notificationsAllowed(): Promise<boolean> {
     return (await Notifications.getPermissionsAsync()).granted;
 }
 
-export async function cancelNudges(): Promise<void> {
+async function cancelNudges(): Promise<void> {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
     await Promise.all(

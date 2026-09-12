@@ -37,7 +37,7 @@ const procedures = z.array(procedureLine).max(100);
  * is answered at the desk against the live question list (§7.8), not on the
  * phone.
  */
-export const patientRefInput = z.discriminatedUnion('kind', [
+const patientRefInput = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('existing'), patientId: z.uuid() }),
     z.object({
         kind: z.literal('new'),

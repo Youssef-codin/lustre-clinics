@@ -2,9 +2,6 @@
 // plus the two screens that stand in front of it — setup (F1) and offline.
 export { AppShell } from './AppShell';
 export type { BackHandler, BackStack } from './backStack';
-export { setLocale, useLocale } from './localeStore';
-export { OfflineScreen } from './OfflineScreen';
 export { SetupScreen } from './SetupScreen';
 export type { ServerSetup, SetupState } from './serverStore';
-export { requestReconfigure, saveServerAddresses, useServerSetup } from './serverStore';
-export { useBackHandler } from './useBackHandler';
+export { useServerSetup } from './serverStore';

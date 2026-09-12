@@ -99,6 +99,5 @@ const errorMapper = t.middleware(async ({ next, path }) => {
 });
 
 export const router = t.router;
-export const middleware = t.middleware;
 
 export const publicProcedure = t.procedure.use(errorMapper);

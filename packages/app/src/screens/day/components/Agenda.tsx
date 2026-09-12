@@ -215,7 +215,7 @@ const SHORT: Partial<Record<AppointmentStatus, string>> = {
  * second, different action; the chip takes the button's width so the states
  * still line up down the column.
  */
-export function CheckInControl({ appointment, loading, inChair, onCheckIn }: CheckInControlProps) {
+function CheckInControl({ appointment, loading, inChair, onCheckIn }: CheckInControlProps) {
     if (appointment.status === 'booked') {
         return (
             <Button

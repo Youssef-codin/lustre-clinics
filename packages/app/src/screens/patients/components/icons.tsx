@@ -8,17 +8,7 @@
  * WhatsApp is `MessageCircle`: Lucide carries no brand marks, and a traced logo
  * is how a project ends up with two icon sets and a trademark question.
  */
-import {
-    ChevronLeft,
-    ChevronRight,
-    MessageCircle,
-    Pencil,
-    Phone,
-    Plus,
-    Search,
-    X,
-} from 'lucide-react-native';
-import { I18nManager } from 'react-native';
+import { MessageCircle, Pencil, Phone, Plus, Search, X } from 'lucide-react-native';
 import { color } from '../../../theme';
 
 export type IconProps = {
@@ -53,13 +43,3 @@ export const CloseIcon = icon(X, 2.4);
 // glyphs: it opens a screen rather than leaving one, and the name below it is
 // what the eye should land on first.
 export const EditIcon = icon(Pencil, 2);
-
-// The design says it in words on the mockup: in Arabic the list mirrors and the
-// chevrons point left. A glyph swap rather than a rotation — `ChevronLeft` is
-// drawn for that direction, and rotating a round-capped stroke moves the caps.
-const RowChevron = icon(ChevronRight, 2.4);
-const RowChevronBack = icon(ChevronLeft, 2.4);
-
-export function RowChevronIcon(props: IconProps) {
-    return I18nManager.isRTL ? <RowChevronBack {...props} /> : <RowChevron {...props} />;
-}

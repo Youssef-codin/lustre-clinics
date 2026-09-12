@@ -19,7 +19,7 @@ import { procedureHandlers } from './procedure';
 type Visit = Dated<RouterOutput['visit']['byId']>;
 type VisitLine = Visit['procedures'][number];
 
-export function requireVisit(id: string): VisitRow {
+function requireVisit(id: string): VisitRow {
     const row = getDb().visits.find((visit) => visit.id === id);
     if (!row) throw DemoError.notFound('visit');
     return row;
@@ -101,7 +101,7 @@ export function insertPayment(
     getDb().payments.push({ id: uuidv7(), visitId, amount, method, methodNote, paidAt: new Date() });
 }
 
-export function readVisit(id: string): Visit {
+function readVisit(id: string): Visit {
     const db = getDb();
     const visit = requireVisit(id);
 

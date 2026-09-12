@@ -3,4 +3,3 @@
 export type { MoneyClusterProps } from './MoneyCluster';
 export { MoneyCluster } from './MoneyCluster';
 export type { MoneyScreenProps } from './MoneyScreen';
-export { MoneyScreen } from './MoneyScreen';

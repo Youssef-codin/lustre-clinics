@@ -41,7 +41,3 @@ export function broadcast(event: WsEvent, payload: Record<string, string> = {}):
         ws.send(message);
     }
 }
-
-export function connectedClients(): number {
-    return sockets.size;
-}

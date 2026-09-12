@@ -37,7 +37,3 @@ export function refDatePart(at: Date, offsetMinutes = 0): string {
     const yy = String(local.getUTCFullYear() % 100).padStart(2, '0');
     return `${dd}${mm}${yy}`;
 }
-
-export function endOf(startsAt: Date, durationMinutes: number): Date {
-    return new Date(startsAt.getTime() + durationMinutes * 60_000);
-}

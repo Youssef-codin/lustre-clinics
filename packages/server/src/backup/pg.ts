@@ -47,7 +47,7 @@ export async function pgRestore(databaseUrl: string, dumpFile: string): Promise<
     await run([bin('pg_restore'), '--no-owner', '--no-privileges', '--dbname', databaseUrl, dumpFile]);
 }
 
-export function withDatabase(databaseUrl: string, database: string): string {
+function withDatabase(databaseUrl: string, database: string): string {
     const url = new URL(databaseUrl);
     url.pathname = `/${database}`;
     return url.toString();
@@ -66,15 +66,6 @@ export async function recreateDatabase(databaseUrl: string, name: string): Promi
         await admin.end();
     }
     return withDatabase(databaseUrl, name);
-}
-
-export async function dropDatabase(databaseUrl: string, name: string): Promise<void> {
-    const admin = postgres(withDatabase(databaseUrl, 'postgres'), { max: 1, onnotice: () => {} });
-    try {
-        await admin.unsafe(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
-    } finally {
-        await admin.end();
-    }
 }
 
 export async function withScratchDatabase<T>(
