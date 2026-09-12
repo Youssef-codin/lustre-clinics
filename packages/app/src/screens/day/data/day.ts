@@ -299,7 +299,7 @@ export async function amend(input: {
 
 const visitIds = new Map<string, string>();
 
-export function rememberVisit(appointmentId: string, visitId: string): void {
+function rememberVisit(appointmentId: string, visitId: string): void {
     visitIds.set(appointmentId, visitId);
 }
 

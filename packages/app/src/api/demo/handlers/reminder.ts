@@ -17,7 +17,7 @@ import { settingsHandlers } from './settings';
 type PendingReminder = Dated<RouterOutput['reminder']['pending'][number]>;
 
 /** An unrecognized `{{placeholder}}` is left visible, so a typo shows rather than vanishing. */
-export function renderTemplate(template: string, values: Record<string, string>): string {
+function renderTemplate(template: string, values: Record<string, string>): string {
     return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (whole, key: string) =>
         (REMINDER_PLACEHOLDERS as readonly string[]).includes(key) ? (values[key] ?? whole) : whole,
     );

@@ -45,14 +45,14 @@ import type {
 export type PatientRow = typeof patients.$inferSelect;
 
 /** What a booking knows about a patient it is creating — `createPatientInput` less the questionnaire. */
-export type MinimalPatientInput = Omit<CreatePatientInput, 'custom'>;
+type MinimalPatientInput = Omit<CreatePatientInput, 'custom'>;
 
 export interface Patient extends PatientRow {
     age: number | null;
 }
 
 /** What was done, or — when the patient never got to the chair — what was going to be. */
-export interface PatientHistoryProcedure {
+interface PatientHistoryProcedure {
     name: string;
     quantity: number;
     tooth: string | null;
@@ -64,7 +64,7 @@ export interface PatientHistoryProcedure {
  * part of the history a record is read for, so the row is keyed by the
  * appointment and every visit-side field is nullable.
  */
-export interface PatientHistoryEntry {
+interface PatientHistoryEntry {
     appointmentId: string;
     visitId: string | null;
     ref: string;
@@ -81,7 +81,7 @@ export interface PatientHistoryEntry {
     procedures: PatientHistoryProcedure[];
 }
 
-export interface PatientDetail {
+interface PatientDetail {
     patient: Patient;
     history: PatientHistoryEntry[];
     questionnaireGaps: QuestionnaireGap[];
@@ -92,7 +92,7 @@ export interface PatientDetail {
  * the register, not the page — the list draws it beside its heading, so a second
  * round trip for one integer would be a wasted call over Tailscale.
  */
-export interface RecentPatients {
+interface RecentPatients {
     patients: Patient[];
     total: number;
 }

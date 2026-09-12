@@ -43,7 +43,7 @@ import { busiestBranch, holdsSlot } from './month';
 import { todayKey } from './time';
 import { useNowMinutes } from './useNow';
 
-export type DoctorDayScreenProps = {
+type DoctorDayScreenProps = {
     /** A patient's record is the Patients tab's screen; the shell switches to it. */
     onOpenRecord: (patientId: string) => void;
     /**

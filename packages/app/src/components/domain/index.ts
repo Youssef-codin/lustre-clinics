@@ -26,7 +26,7 @@ export {
     time12,
 } from './clock';
 export type { MoneyValueProps } from './MoneyValue';
-export { formatAmount, formatMoney, MoneyValue } from './MoneyValue';
+export { formatMoney, MoneyValue } from './MoneyValue';
 export type { PatientRowProps, PatientSummary } from './PatientRow';
 export { PatientRow } from './PatientRow';
 export type { StatusPillProps, StatusTone } from './StatusPill';

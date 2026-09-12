@@ -19,7 +19,7 @@ import { visitService } from '../../src/modules/visit/visit.service.ts';
 
 export const CHECKUP_PRICE = 30_000;
 export const ROOT_CANAL_PRICE = 270_000;
-export const XRAY_PRICE = 5_000;
+const XRAY_PRICE = 5_000;
 export const EXTRACTION_PRICE = 80_000;
 
 export interface Clinic {

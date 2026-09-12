@@ -20,7 +20,7 @@ import { StyleSheet, View } from 'react-native';
 import { color } from '../../theme';
 import { MoneyScreen } from './MoneyScreen';
 
-export type MoneyClusterProps = {
+type MoneyClusterProps = {
     /** Bumped when the Money tab is tapped while it is already up. Home is the dashboard. */
     goHome?: number;
     /**

@@ -59,6 +59,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          # `fallow audit` diffs against the base branch, which a shallow clone does not have.
+          fetch-depth: 0
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
@@ -98,3 +100,14 @@ jobs:
 
       - name: Test
         run: bun test
+
+      # Advisory only. Reports dead code, duplication and complexity introduced by
+      # this change as annotations and a job summary; the backlog in untouched
+      # files never fails a run, and neither does a failing verdict.
+      - name: Fallow audit
+        continue-on-error: true
+        env:
+          FALLOW_AUDIT_BASE: origin/${{ github.base_ref || 'main' }}
+        run: |
+          bunx fallow audit --format github-summary >> "$GITHUB_STEP_SUMMARY" || true
+          bunx fallow audit --format github-annotations

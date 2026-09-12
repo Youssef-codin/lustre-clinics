@@ -30,7 +30,7 @@ import { broadcast } from '../../ws/index.ts';
 import { insertPayment } from '../visit/visit.service.ts';
 import type { BalanceSummaryInput, BalanceTakingsInput, SettleInput } from './balance.schema.ts';
 
-export interface PatientBalance {
+interface PatientBalance {
     patientId: string;
     name: string;
     phone: string;
@@ -38,12 +38,12 @@ export interface PatientBalance {
     oldestUnpaidAt: Date;
 }
 
-export interface OutstandingReport {
+interface OutstandingReport {
     total: number;
     patients: PatientBalance[];
 }
 
-export interface VisitBalance {
+interface VisitBalance {
     visitId: string;
     appointmentId: string;
     ref: string;
@@ -53,7 +53,7 @@ export interface VisitBalance {
     balance: number;
 }
 
-export interface BalanceSummary {
+interface BalanceSummary {
     charged: number;
     collected: number;
     difference: number;
@@ -71,7 +71,7 @@ export interface BalanceSummary {
 }
 
 /** One visit's share of a patient-level payment, in the order it was filled. */
-export interface SettledVisit {
+interface SettledVisit {
     visitId: string;
     ref: string;
     startsAt: Date;
@@ -93,7 +93,7 @@ export interface SettledVisit {
  * the desk never posts. That is a UI decision; this payload stays, because a
  * receipt, an audit and any future per-visit view all need it.
  */
-export interface SettleReport {
+interface SettleReport {
     patientId: string;
     amount: number;
     method: PaymentMethod;
@@ -102,13 +102,13 @@ export interface SettleReport {
     visits: SettledVisit[];
 }
 
-export interface MethodTaking {
+interface MethodTaking {
     method: PaymentMethod;
     amount: number;
     count: number;
 }
 
-export interface TakingsReport {
+interface TakingsReport {
     total: number;
     byMethod: MethodTaking[];
 }

@@ -34,7 +34,7 @@ export function holdsSlot(appointment: Appointment): boolean {
  * it left every past day drawing an empty bar once the day had been worked
  * through, which reads as a month with nothing in it.
  */
-export function filledSlot(appointment: Appointment): boolean {
+function filledSlot(appointment: Appointment): boolean {
     return (DAY_FILLING_STATUSES as readonly string[]).includes(appointment.status);
 }
 

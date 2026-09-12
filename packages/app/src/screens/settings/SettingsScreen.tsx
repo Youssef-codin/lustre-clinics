@@ -58,7 +58,7 @@ type Route =
 const ROLE_NAME: Record<ClientRole, string> = { doctor: 'Doctor', secretary: 'Secretary' };
 const ROLE_INITIAL: Record<ClientRole, string> = { doctor: 'D', secretary: 'S' };
 
-export type SettingsScreenProps = {
+type SettingsScreenProps = {
     role?: ClientRole;
     onChangeRole?: (role: ClientRole) => void;
     /**

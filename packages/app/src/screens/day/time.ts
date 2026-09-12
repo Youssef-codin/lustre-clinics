@@ -31,10 +31,8 @@
  */
 import { dateKey, localOffsetMinutes, offsetForDate, parseKey, todayKey } from '@lustre/shared';
 
-export type { Clock12 } from '../../components/domain/clock';
 export {
     clock12,
-    DAY_MINUTES,
     formatClock12,
     formatDuration,
     formatElapsed,

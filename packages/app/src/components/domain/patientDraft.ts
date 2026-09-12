@@ -50,10 +50,10 @@ export const GENDERS: readonly { value: string; label: string }[] = [
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** The server refuses under 5 too. Short enough to be a mis-tap rather than a number. */
-export const SHORTEST_PHONE = 5;
+const SHORTEST_PHONE = 5;
 
 /** Nobody has been alive longer than this, and a typo like `340` should not reach the server. */
-export const OLDEST_AGE = 129;
+const OLDEST_AGE = 129;
 
 /** Day, month, year — the order an ID card is read out in. */
 export const BIRTH_DATE_DIGITS = 8;

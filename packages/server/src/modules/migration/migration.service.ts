@@ -52,14 +52,14 @@ const SYNTHETIC_DURATION_MINUTES = 5;
 /** English, for logs and for the appointment detail screen if anyone ever opens one of these. */
 const SYNTHETIC_NOTE = 'Opening balance carried over from the old system';
 
-export interface EnteredPatient {
+interface EnteredPatient {
     patient: Patient;
     /** The synthetic visit carrying the opening balance, or null when the patient owed nothing. */
     openingBalanceVisitId: string | null;
 }
 
 /** How far the migration has got. The screen draws this beside its own count for the session. */
-export interface MigrationProgress {
+interface MigrationProgress {
     patients: number;
     openingBalances: number;
     openingBalanceTotal: number;

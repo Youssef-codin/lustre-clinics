@@ -20,9 +20,9 @@ import { toWhatsAppNumber } from '../../util/phone.ts';
 import { settingsService } from '../settings/settings.service.ts';
 import type { DismissTodayInput, PendingRemindersInput } from './reminder.schema.ts';
 
-export type Reminder = typeof reminders.$inferSelect;
+type Reminder = typeof reminders.$inferSelect;
 
-export interface PendingReminder {
+interface PendingReminder {
     id: string;
     appointmentId: string;
     dueAt: Date;

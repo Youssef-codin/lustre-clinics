@@ -175,7 +175,7 @@ export function insertAppointment(
  * without interrupting a procedure in progress: that row stays, and the walk-in
  * starts when it ends.
  */
-export function makeRoomForWalkIn(
+function makeRoomForWalkIn(
     branchId: string,
     at: Date,
     durationMinutes: number,

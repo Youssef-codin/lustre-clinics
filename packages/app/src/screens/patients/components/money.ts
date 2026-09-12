@@ -3,9 +3,9 @@
 // `components/domain/money`, which §7.12 makes the one implementation; this
 // file held a second one until the shared one grew to cover it.
 import { PIASTRES_PER_POUND } from '@lustre/shared';
-import { formatAmount, formatMoney, toPounds } from '../../../components/domain/money';
+import { formatMoney, toPounds } from '../../../components/domain/money';
 
-export { formatAmount, formatMoney, toPounds };
+export { formatMoney, toPounds };
 
 /**
  * The payment field takes digits and nothing else. `ui/NumericField` is asked

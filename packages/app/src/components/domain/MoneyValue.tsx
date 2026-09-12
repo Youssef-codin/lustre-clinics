@@ -39,8 +39,6 @@ const SYMBOL_VARIANT: Partial<Record<TextVariant, TextVariant>> = {
     amount: 'footnote',
 };
 
-export { formatAmount };
-
 export function formatMoney(piastres: number, options: MoneyOptions = {}): string {
     return formatIn(piastres, { ...options, language: options.language ?? currentLanguage() });
 }

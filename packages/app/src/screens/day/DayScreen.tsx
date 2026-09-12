@@ -113,7 +113,7 @@ export type OpenBookingRequest = {
     seq: number;
 };
 
-export type DayScreenProps = {
+type DayScreenProps = {
     /** The booking page covers the day pane; the shell lights the Patients tab
      * while it is up, because a booking belongs to the patient, not to today. */
     onBookingChange?: (open: boolean) => void;

@@ -7,7 +7,7 @@ import { sql as raw } from 'drizzle-orm';
 import { tailnetAddress } from '../../config.ts';
 import { db, sql } from '../../db/index.ts';
 
-export interface HealthReport {
+interface HealthReport {
     ok: boolean;
     db: boolean;
     migration: string | null;

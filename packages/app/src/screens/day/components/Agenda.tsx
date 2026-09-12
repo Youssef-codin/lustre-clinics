@@ -195,7 +195,7 @@ function RowBody({
     );
 }
 
-export type CheckInControlProps = {
+type CheckInControlProps = {
     appointment: Appointment;
     loading: boolean;
     /** `checked_in` is arrived, not seated — only the queue's head reads as IN. */
@@ -215,7 +215,7 @@ const SHORT: Partial<Record<AppointmentStatus, string>> = {
  * second, different action; the chip takes the button's width so the states
  * still line up down the column.
  */
-export function CheckInControl({ appointment, loading, inChair, onCheckIn }: CheckInControlProps) {
+function CheckInControl({ appointment, loading, inChair, onCheckIn }: CheckInControlProps) {
     if (appointment.status === 'booked') {
         return (
             <Button

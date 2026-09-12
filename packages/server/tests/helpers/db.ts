@@ -18,7 +18,7 @@ export const sql = dbSql;
 
 const TEST_DATABASE_SUFFIX = '_test';
 
-export function assertTestDatabase(url = config.DATABASE_URL): void {
+function assertTestDatabase(url = config.DATABASE_URL): void {
     const name = databaseName(url);
 
     if (!name.endsWith(TEST_DATABASE_SUFFIX)) {

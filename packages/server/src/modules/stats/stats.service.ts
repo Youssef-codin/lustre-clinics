@@ -13,7 +13,7 @@ import { dayRange } from '../../util/time.ts';
 import { balanceService } from '../balance/balance.service.ts';
 import type { StatsSummaryInput } from './stats.schema.ts';
 
-export interface StatsSummary {
+interface StatsSummary {
     from: Date;
     to: Date;
     appointments: {

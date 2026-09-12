@@ -17,7 +17,7 @@ import { useFonts } from 'expo-font';
 // ~430KB of unused italics. Keys are the family names from tailwind.config.js
 // `fontFamily`; React Native selects a face by family name alone, so each
 // weight is registered separately rather than as one family with a weight.
-export const APP_FONTS = {
+const APP_FONTS = {
     InstrumentSans_400Regular,
     InstrumentSans_500Medium,
     InstrumentSans_600SemiBold,

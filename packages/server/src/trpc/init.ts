@@ -24,7 +24,7 @@ export function createContext() {
     return { db };
 }
 
-export type Context = ReturnType<typeof createContext>;
+type Context = ReturnType<typeof createContext>;
 
 function trpcCodeFor(httpStatus: number): TRPCError['code'] {
     switch (httpStatus) {
@@ -99,6 +99,5 @@ const errorMapper = t.middleware(async ({ next, path }) => {
 });
 
 export const router = t.router;
-export const middleware = t.middleware;
 
 export const publicProcedure = t.procedure.use(errorMapper);

@@ -59,4 +59,3 @@ export const setClinicDayInput = z
 export const clearClinicDayInput = z.object({ weekday });
 
 export type SetClinicDayInput = z.infer<typeof setClinicDayInput>;
-export type ClearClinicDayInput = z.infer<typeof clearClinicDayInput>;

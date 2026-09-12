@@ -33,7 +33,7 @@ import {
 import { useCallback, useRef } from 'react';
 
 /** Everything this cluster caches sits under one root, so a sign-out can drop it in one call. */
-export const PATIENTS_KEY = 'patients';
+const PATIENTS_KEY = 'patients';
 
 export interface QueryResult<T> {
     data: T | undefined;

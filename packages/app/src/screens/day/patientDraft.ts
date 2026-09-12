@@ -26,13 +26,11 @@ import {
 import type { Patient, PatientRef } from './data';
 
 export {
-    BIRTH_DATE_DIGITS,
     birthDateDigits,
     birthDateDisplay,
     birthDateError,
     birthDateIso,
     emailError,
-    GENDERS,
 } from '../../components/domain/patientDraft';
 
 export type PatientDraft = {

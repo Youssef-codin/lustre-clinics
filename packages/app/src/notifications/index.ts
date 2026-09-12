@@ -2,9 +2,5 @@
 // entry point; `schedule` is imported by its own path where the rule is being
 // tested, because it is the only file here with no `expo-notifications` in it.
 
-export { armNudges, cancelNudges, ensurePermission, notificationsAllowed } from './notifications';
-export type { NudgeInput, NudgePlan } from './schedule';
-export { minutesOfClock, planNudges } from './schedule';
-export type { NotificationsAllowed } from './useNotificationsAllowed';
 export { useNotificationsAllowed } from './useNotificationsAllowed';
 export { useRearmReminderNudges, useReminderNudges } from './useReminderNudges';

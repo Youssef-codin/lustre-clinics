@@ -1,4 +1,4 @@
-export { APP_FONTS, useAppFonts } from './fonts';
+export { useAppFonts } from './fonts';
 export type { TextProps, TextTone, TextVariant, TextWeight } from './Text';
 export { containsArabic, Text } from './Text';
 export type { Color, Radius, Space, TypeVariant } from './tokens';

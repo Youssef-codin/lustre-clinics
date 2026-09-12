@@ -5,7 +5,7 @@
  * `errors.ts` can be reached from `bun test` without dragging React Native in
  * behind the tRPC client.
  */
-import { ERROR_CODE, type ErrorCode } from '@lustre/shared';
+import type { ErrorCode } from '@lustre/shared';
 
 export class PatientsRequestError extends Error {
     readonly code: ErrorCode;
@@ -17,13 +17,4 @@ export class PatientsRequestError extends Error {
         this.code = code;
         this.offline = options?.offline ?? false;
     }
-}
-
-export function asPatientsRequestError(err: unknown): PatientsRequestError {
-    if (err instanceof PatientsRequestError) return err;
-    return new PatientsRequestError(
-        ERROR_CODE.INTERNAL,
-        err instanceof Error ? err.message : 'request failed',
-        { cause: err },
-    );
 }

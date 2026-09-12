@@ -5,11 +5,9 @@
  * knows this exists — the screens call the same procedures over the same client
  * and get the same shapes back.
  */
-export { clearStored } from './db';
 export { subscribeToDemoEvents } from './events';
-export type { DemoMode } from './flag';
-export { disableDemoMode, enableDemoMode, isDemoMode, useDemoMode } from './flag';
-export { demoLink, openDemoDb } from './link';
+export { enableDemoMode, isDemoMode, useDemoMode } from './flag';
+export { demoLink } from './link';
 
 import { noteDataReset } from '../dataReset';
 import { clearStored, setDb } from './db';
