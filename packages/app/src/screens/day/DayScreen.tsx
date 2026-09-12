@@ -55,7 +55,7 @@ import {
     type Visit,
     visitForAppointment,
 } from './data';
-import { dayDelay, delayLabel, delayReason } from './delay';
+import { dayDelay, delayLabel } from './delay';
 import { describeError } from './errors';
 import { isClosed } from './hours';
 import { busiestBranch, holdsSlot } from './month';
@@ -597,17 +597,10 @@ function DayScreenView({ onBookingChange, onOpenRecord, open, goHome = 0 }: DayS
 
                         {delayLabel(delay) ? (
                             <View style={styles.late}>
-                                <ClockIcon size={14} stroke={color.due} />
-                                <View style={styles.grow}>
-                                    <Text variant="footnote" weight="bold" tone="due">
-                                        Running {delayLabel(delay)}
-                                    </Text>
-                                    {delayReason(delay) ? (
-                                        <Text variant="caption" tone="muted">
-                                            {delayReason(delay)} — booked times below show what they now mean.
-                                        </Text>
-                                    ) : null}
-                                </View>
+                                <ClockIcon size={13} stroke={color.due} />
+                                <Text variant="footnote" weight="bold" tone="due">
+                                    Running {delayLabel(delay)}
+                                </Text>
                             </View>
                         ) : null}
 
@@ -855,14 +848,14 @@ const styles = StyleSheet.create({
     tabs: { paddingHorizontal: size.gutter, paddingBottom: space[3] },
     late: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: space[2],
+        alignItems: 'center',
+        gap: space[1.5],
         marginHorizontal: size.gutter,
-        padding: space[3],
+        paddingVertical: space[2],
+        paddingHorizontal: space[3],
         borderRadius: radius.lg,
         borderWidth: border.hair,
         borderColor: color.dueSoft,
         backgroundColor: color.dueSoft,
     },
-    grow: { flex: 1, minWidth: 0, gap: space[0.5] },
 });

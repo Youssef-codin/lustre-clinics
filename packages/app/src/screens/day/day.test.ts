@@ -20,7 +20,7 @@ import {
 import { slotProgress, splitDeskDay, splitDoctorDay, standingFor } from './chair';
 import { RequestError } from './data/client';
 import type { Appointment, ProcedureCategory } from './data/types';
-import { dayDelay, delayLabel, delayReason, isProjected, ON_TIME, projectedStart } from './delay';
+import { dayDelay, delayLabel, isProjected, ON_TIME, projectedStart } from './delay';
 import { emptyDay } from './empty';
 import { describeError } from './errors';
 import { hoursFor, isClosed, openMinutes } from './hours';
@@ -1094,7 +1094,6 @@ describe('a day running late', () => {
 
         expect(delay).toEqual(ON_TIME);
         expect(delayLabel(delay)).toBeNull();
-        expect(delayReason(delay)).toBeNull();
     });
 
     // The overrun is counted to the minute and reported to the minute, but what
@@ -1107,8 +1106,8 @@ describe('a day running late', () => {
 
         expect(delay.fromChair).toBe(12);
         expect(delay.minutes).toBe(15);
-        expect(delayLabel(delay)).toBe('15 min late');
-        expect(delayReason(delay)).toBe('the chair is 12 min over');
+        // The headline is the overrun itself; only the slide is rounded.
+        expect(delayLabel(delay)).toBe('12 min late');
     });
 
     // Taking the walk-in already moved the booked day: the server seated it at
@@ -1128,7 +1127,6 @@ describe('a day running late', () => {
 
         expect(delay).toEqual(ON_TIME);
         expect(delayLabel(delay)).toBeNull();
-        expect(delayReason(delay)).toBeNull();
     });
 
     it('slides by the chair alone when a walk-in is waiting behind it', () => {
@@ -1143,7 +1141,7 @@ describe('a day running late', () => {
 
         expect(delay.fromChair).toBe(12);
         expect(delay.minutes).toBe(15);
-        expect(delayReason(delay)).toBe('the chair is 12 min over');
+        expect(delayLabel(delay)).toBe('12 min late');
     });
 
     // The reviewer's case, as the desk sees it: the chair is on time and ends
