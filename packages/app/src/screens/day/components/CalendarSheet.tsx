@@ -164,6 +164,10 @@ export function CalendarSheet({
                               : 'Go to this day'
                     }
                     block
+                    // Paging to a month lands the pick on its first day, which
+                    // can be one the branch is shut — the cells cannot be tapped
+                    // onto such a day, but the button would still take it.
+                    disabled={mode === 'book' && (pendingClosed || pending < today)}
                     onPress={() => {
                         onPick(pending, pendingBranch);
                         onClose();
@@ -226,12 +230,18 @@ export function CalendarSheet({
                     const picked = day === pending;
                     const full = (load?.fill ?? 0) >= FULL_AT;
                     const fillTone = fillOf({ picked, full, closed });
+                    // On the booking page a day the branch cannot take is not a
+                    // pick at all: `daysOffered` would drop it and the booking
+                    // would land on some other day without a word. The day view
+                    // can look at any day, so it keeps every cell.
+                    const unbookable = mode === 'book' && (past || isClosed(day, schedule, branchId));
 
                     return (
                         <Pressable
                             key={day}
+                            disabled={unbookable}
                             accessibilityRole="button"
-                            accessibilityState={{ selected: picked }}
+                            accessibilityState={{ selected: picked, disabled: unbookable }}
                             accessibilityLabel={`${day}${closed ? ', closed' : ''}${
                                 counting ? ', still counting' : load ? `, ${load.count} booked` : ''
                             }${
@@ -269,7 +279,7 @@ export function CalendarSheet({
                                     // the grid is read at a glance, so it wants 700.
                                     script="sans"
                                     weight="bold"
-                                    tone={picked ? 'inverse' : closed || past ? 'muted' : 'ink'}
+                                    tone={picked ? 'inverse' : closed || past || unbookable ? 'muted' : 'ink'}
                                 >
                                     {parseKey(day).getDate()}
                                 </Text>
@@ -345,15 +355,17 @@ export function CalendarSheet({
                 ) : (
                     <>
                         <Text variant="footnote" tone="muted">
-                            {pendingClosed
-                                ? 'Closed that day.'
-                                : pendingLoad && pendingLoad.count > 0
-                                  ? `${pendingLoad.used} of ${pendingLoad.slots} slots${
-                                        pendingLoad.firstAt
-                                            ? ` · first ${firstLabel(pendingLoad.firstAt)}`
-                                            : ''
-                                    }`
-                                  : 'Nothing booked yet.'}
+                            {mode === 'book' && pending < today
+                                ? 'That day has gone — pick one from today on.'
+                                : pendingClosed
+                                  ? 'Closed that day.'
+                                  : pendingLoad && pendingLoad.count > 0
+                                    ? `${pendingLoad.used} of ${pendingLoad.slots} slots${
+                                          pendingLoad.firstAt
+                                              ? ` · first ${firstLabel(pendingLoad.firstAt)}`
+                                              : ''
+                                      }`
+                                    : 'Nothing booked yet.'}
                         </Text>
                         {movesToName ? (
                             <Text variant="footnote" tone="accent">
