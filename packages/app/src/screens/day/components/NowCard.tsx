@@ -12,7 +12,7 @@ import { Button, Dot } from '../../../components/ui';
 import { color, radius, size, space, Text } from '../../../theme';
 import { slotProgress } from '../chair';
 import type { Appointment } from '../data';
-import { minutesOfDay, time12 } from '../time';
+import { formatDuration, minutesOfDay, time12 } from '../time';
 import { ChairProgress } from './ChairProgress';
 import { CheckIcon, ClockIcon } from './icons';
 
@@ -154,8 +154,8 @@ export function NowCard({
                     <ClockIcon />
                     <Text variant="callout" tone="muted" style={styles.detailText}>
                         {until > 0
-                            ? `${time} ${meridiem} · in ${until} min`
-                            : `${time} ${meridiem} · ${Math.abs(until)} min late`}
+                            ? `${time} ${meridiem} · in ${formatDuration(until)}`
+                            : `${time} ${meridiem} · ${formatDuration(Math.abs(until))} late`}
                     </Text>
                 </View>
 

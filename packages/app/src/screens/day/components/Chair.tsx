@@ -15,7 +15,7 @@ import { Button, Dot } from '../../../components/ui';
 import { border, color, radius, shadow, size, space, Text } from '../../../theme';
 import { slotProgress } from '../chair';
 import type { Appointment } from '../data';
-import { minutesOfDay, time12 } from '../time';
+import { formatDuration, minutesOfDay, time12 } from '../time';
 import { useNowSeconds } from '../useNow';
 import { ChairProgress } from './ChairProgress';
 import { CheckIcon, ClockIcon, ProcedureIcon } from './icons';
@@ -135,6 +135,7 @@ export function ChairCard({
     const eyebrow = EYEBROW[kind];
     const slot = time12(appointment.startsAt);
     const progress = slotProgress(appointment, nowMinutes, seatedAt);
+    const until = minutesOfDay(appointment.startsAt) - nowMinutes;
 
     return (
         <View style={styles.card} testID="chair-card">
@@ -196,7 +197,7 @@ export function ChairCard({
             {kind === 'next' ? (
                 <View style={styles.footer}>
                     <Text variant="title2" weight="semibold" tone="inverse" style={styles.until}>
-                        {untilLabel(minutesOfDay(appointment.startsAt) - nowMinutes)}
+                        {until > 0 ? `in ${formatDuration(until)}` : `${formatDuration(-until)} late`}
                     </Text>
                 </View>
             ) : null}
@@ -218,17 +219,11 @@ function Waited({ checkedInAt, nowMinutes }: { checkedInAt?: string; nowMinutes:
             <View style={styles.waited}>
                 <ClockIcon size={14} stroke={color.due} width={2.2} />
                 <Text variant="subhead" weight="semibold" tone="due">
-                    {`waiting ${waited} min`}
+                    {`waiting ${formatDuration(waited)}`}
                 </Text>
             </View>
         </View>
     );
-}
-
-function untilLabel(until: number): string {
-    if (until <= 0) return `${Math.abs(until)} min late`;
-    if (until < 60) return `in ${until} min`;
-    return `in ${Math.floor(until / 60)}h ${until % 60}m`;
 }
 
 // The chair's dot holds still: its card carries the progress bar, and the bar
