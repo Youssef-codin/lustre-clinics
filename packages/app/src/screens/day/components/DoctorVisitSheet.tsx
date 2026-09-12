@@ -10,25 +10,16 @@
  * did we do in 2023". The plan is two taps closer than the history now, and the
  * history is still one tap away.
  *
- * Laid out from `appointment-view.html`'s identity block and group cards, with
- * one change the mock does not have to make: that page is a finished visit with
- * four procedures over three teeth, where a card per tooth is a dense list. A
- * booking is usually one line, and a bordered card with a header row, a divider
- * and a single name in it is mostly chrome. So the teeth share one card and are
- * hairline-separated rows inside it — the badge, the name, the position spelled
- * out because `UL6` and `UR6` are one letter apart and opposite sides of the
- * mouth.
- *
- * No money anywhere, unlike the mock. A booking carries no price by design (the
- * visit snapshots the catalogue on the day, §7), and pricing is the desk's.
+ * The plan itself is `PlanSummary`, which the desk's appointment sheet draws
+ * too, so both roles read what a booking is for the same way.
  */
 import { StyleSheet, View } from 'react-native';
-import { StatusPill, ToothGroupCard, type ToothGroupLine } from '../../../components/domain';
+import { StatusPill } from '../../../components/domain';
 import { Button, Sheet } from '../../../components/ui';
 import { border, color, radius, space, Text } from '../../../theme';
-import type { Appointment, AppointmentProcedure } from '../data';
-import { toothGroupsOf, toothPosition } from '../procedures';
+import type { Appointment } from '../data';
 import { dateKey, formatSpan, minutesOfDay, relativeDayLabel } from '../time';
+import { PlanSummary } from './PlanSummary';
 
 export type DoctorVisitSheetProps = {
     visible: boolean;
@@ -39,9 +30,6 @@ export type DoctorVisitSheetProps = {
 };
 
 export function DoctorVisitSheet({ visible, appointment, onClose, onOpenRecord }: DoctorVisitSheetProps) {
-    const procedures = appointment?.procedures ?? [];
-    const groups = toothGroupsOf(procedures);
-
     return (
         <Sheet
             visible={visible}
@@ -62,41 +50,7 @@ export function DoctorVisitSheet({ visible, appointment, onClose, onOpenRecord }
                 <>
                     <Identity appointment={appointment} />
 
-                    <View style={styles.sectionHead}>
-                        <Text variant="eyebrow" tone="muted">
-                            IN FOR
-                        </Text>
-                        <Text variant="footnote" tone="muted">
-                            {procedures.length === 1 ? '1 procedure' : `${procedures.length} procedures`}
-                        </Text>
-                    </View>
-
-                    {groups.length === 0 ? (
-                        // A real and common state: what is done is decided in the
-                        // chair. Said in a sentence rather than left as an empty
-                        // card, which reads as a failed load.
-                        <View style={styles.blank}>
-                            <Text variant="subhead" tone="muted">
-                                Nothing planned — it will be decided in the chair.
-                            </Text>
-                        </View>
-                    ) : (
-                        <View style={styles.plan}>
-                            {groups.map((group, index) => (
-                                <View
-                                    key={group.tooth ?? 'none'}
-                                    style={index > 0 ? styles.groupDivided : undefined}
-                                >
-                                    <ToothGroupCard
-                                        variant="row"
-                                        tooth={group.tooth}
-                                        position={toothPosition(group.tooth)}
-                                        lines={group.items.map(planLine)}
-                                    />
-                                </View>
-                            ))}
-                        </View>
-                    )}
+                    <PlanSummary procedures={appointment.procedures} label="IN FOR" />
 
                     {appointment.note ? (
                         <View style={styles.note}>
@@ -148,19 +102,6 @@ function Identity({ appointment }: { appointment: Appointment }) {
     );
 }
 
-/**
- * One planned procedure as a `ToothGroupCard` line. The quantity is folded into
- * the name rather than given a column of its own — it is almost always one, and
- * a column that reads `1` down every row is a column about nothing.
- */
-function planLine(procedure: AppointmentProcedure): ToothGroupLine {
-    return {
-        id: procedure.id,
-        name: procedure.quantity > 1 ? `${procedure.name} × ${procedure.quantity}` : procedure.name,
-        detail: procedure.note,
-    };
-}
-
 /** `Today · 11:35 AM – 12:35 PM`. */
 function slotLabel(appointment: Appointment): string {
     const start = new Date(appointment.startsAt);
@@ -184,20 +125,6 @@ const styles = StyleSheet.create({
     tileSub: { opacity: 0.62 },
     who: { flex: 1, gap: space[1] },
     status: { flexDirection: 'row', paddingTop: space[1] },
-
-    sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-    blank: { paddingBottom: space[1] },
-
-    // One card for every tooth rather than one each: a booking is usually a
-    // single line, and a bordered box per line is more border than plan.
-    plan: {
-        borderRadius: radius.xl2,
-        borderWidth: border.hair,
-        borderColor: color.line,
-        backgroundColor: color.surface,
-        overflow: 'hidden',
-    },
-    groupDivided: { borderTopWidth: border.hair, borderTopColor: color.hair },
 
     note: {
         gap: space[1.5],
