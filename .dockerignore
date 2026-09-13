@@ -1,0 +1,5 @@
+# The image is the compiled binary and its migrations (Dockerfile). Without this
+# the build context is the whole repo, node_modules and all.
+*
+!dist/lustre
+!dist/migrations

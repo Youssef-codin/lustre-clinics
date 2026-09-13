@@ -14,3 +14,25 @@ all:
         # Read from the machine running the play so no key is committed.
         admin_pubkeys:
           - "{{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'HOME') ~ '/.ssh/id_ed25519.pub') }}"
+        repo_root: "{{ playbook_dir }}/../.."
+        # Both stacks run from the same compose.yaml in their own directory
+        # (/opt/lustre-<name>) with their own volumes, network and passwords.
+        # The URLs are read from these environment variables when the play
+        # runs, so none is ever written into the repo; dev reports nowhere.
+        lustre_stacks:
+          - name: prod
+            environment: production
+            api_port: 3000
+            db_port: 5432
+            glitchtip: true
+            migrate_on_boot: false
+            discord_env: LUSTRE_DISCORD_WEBHOOK_URL
+            heartbeat_env: LUSTRE_HEARTBEAT_URL
+          - name: dev
+            environment: development
+            api_port: 3001
+            db_port: 5433
+            glitchtip: false
+            migrate_on_boot: true
+            discord_env: ""
+            heartbeat_env: ""

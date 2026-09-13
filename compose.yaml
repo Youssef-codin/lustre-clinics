@@ -1,3 +1,11 @@
+# The clinic machine runs this file twice, as two projects with their own
+# volumes, networks and passwords (infra/README.md):
+#
+#   docker compose -p lustre-prod --env-file .env.prod up -d
+#   docker compose -p lustre-dev  --env-file .env.dev  up -d
+#
+# Neither can reach the other's database: each project gets its own network.
+# A developer's laptop still runs `docker compose up -d db` with `.env`.
 services:
     db:
         image: postgres:17-alpine
@@ -6,6 +14,12 @@ services:
             POSTGRES_USER: lustre
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
             POSTGRES_DB: lustre
+            # Read once, when the volume is created, by
+            # infra/postgres/init/10-roles.sh. Unset on a laptop, which keeps
+            # the single superuser.
+            LUSTRE_OWNER_PASSWORD: ${LUSTRE_OWNER_PASSWORD:-}
+            LUSTRE_APP_PASSWORD: ${LUSTRE_APP_PASSWORD:-}
+            LUSTRE_ENVIRONMENT: ${LUSTRE_ENVIRONMENT:-development}
         # Sized for the 4 GB clinic laptop, which also runs the API and the
         # GlitchTip stack. Postgres' own defaults assume it has the machine; the
         # cap stops a runaway query from pushing everything else into swap.
@@ -27,6 +41,7 @@ services:
         shm_size: 256m
         volumes:
             - pgdata:/var/lib/postgresql/data
+            - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
         healthcheck:
             test: ['CMD-SHELL', 'pg_isready -U lustre -d lustre']
             interval: 5s
@@ -34,22 +49,34 @@ services:
             retries: 10
         # Loopback only. The server container reaches it over the compose
         # network; this mapping exists so migrations, tests, and psql can run
-        # from the host. Nothing outside the machine can connect.
+        # from the host. Nothing outside the machine can connect. DB_PORT keeps
+        # the dev stack's copy off production's port.
         ports:
-            - '127.0.0.1:5432:5432'
+            - '127.0.0.1:${DB_PORT:-5432}:5432'
 
     server:
-        # Built rather than pulled: the image adds the Postgres client tools the
-        # backup job shells out to (§16). See Dockerfile.
+        # The compiled binary plus pg_dump (Dockerfile). Run `bun run
+        # build:server` first; the build context is `dist/` alone
+        # (.dockerignore). The target is Bun's baseline build because the first
+        # clinic laptop's Sandy Bridge CPU has no AVX2.
         build: .
         restart: always
         working_dir: /app
-        # The command comes from the image's ENTRYPOINT/CMD, so
-        # `docker compose run server packages/server/scripts/backup.ts` works.
+        # The image's ENTRYPOINT is the binary, so a subcommand runs against the
+        # live stack: `docker compose run --rm server backup`.
         environment:
-            DATABASE_URL: postgres://lustre:${POSTGRES_PASSWORD}@db:5432/lustre
+            NODE_ENV: production
+            # The row-level role: no DROP, TRUNCATE or ALTER (10-roles.sh).
+            DATABASE_URL: postgres://lustre_app:${LUSTRE_APP_PASSWORD:-}@db:5432/lustre
+            # Empty in .env.prod, so the production server never holds the
+            # owner's password; the deploy migrates with a one-off
+            # `docker compose run`. The dev stack sets it and migrates on boot.
+            MIGRATION_DATABASE_URL: ${SERVER_MIGRATION_DATABASE_URL:-}
+            MIGRATE_ON_BOOT: ${MIGRATE_ON_BOOT:-false}
             PORT: 3000
             LOG_LEVEL: ${LOG_LEVEL:-info}
+            TAILSCALE_IP: ${TAILSCALE_IP:-}
+            TAILSCALE_HOSTNAME: ${TAILSCALE_HOSTNAME:-}
             DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
             HEARTBEAT_URL: ${HEARTBEAT_URL:-}
             BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
@@ -64,12 +91,12 @@ services:
             BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
             BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
         volumes:
-            - .:/app
             - ./backups:/app/backups
         # Bound to the Tailscale interface only — Tailscale is the security
-        # boundary (SPEC §1). Set TAILSCALE_IP in .env.
+        # boundary (SPEC §1). Set TAILSCALE_IP in .env. API_PORT is 3000 for
+        # production and 3001 for the dev stack.
         ports:
-            - '${TAILSCALE_IP:-0.0.0.0}:3000:3000'
+            - '${TAILSCALE_IP:-0.0.0.0}:${API_PORT:-3000}:3000'
         depends_on:
             db:
                 condition: service_healthy
@@ -79,8 +106,13 @@ services:
     # Postgres rather than a second database on `db`: §16's pg_dump then covers
     # the whole `db` container without ever touching them, and a retention purge
     # churning event rows cannot bloat the volume the clinic's data lives on.
+    #
+    # Behind the `glitchtip` profile: production turns it on with
+    # COMPOSE_PROFILES=glitchtip in .env.prod, and the dev stack, which reports
+    # nowhere, leaves it off.
     glitchtip-db:
         image: postgres:17-alpine
+        profiles: [glitchtip]
         restart: always
         environment:
             POSTGRES_USER: glitchtip
@@ -97,6 +129,7 @@ services:
 
     glitchtip-redis:
         image: redis:7-alpine
+        profiles: [glitchtip]
         restart: always
         healthcheck:
             test: ['CMD', 'redis-cli', 'ping']
@@ -106,6 +139,7 @@ services:
 
     glitchtip-web:
         image: glitchtip/glitchtip:v4.2.2
+        profiles: [glitchtip]
         restart: always
         environment: &glitchtip-env
             DATABASE_URL: postgres://glitchtip:${GLITCHTIP_POSTGRES_PASSWORD}@glitchtip-db:5432/glitchtip
@@ -117,6 +151,11 @@ services:
             # Retention. Celery beat purges events older than this nightly, so
             # the worker below is what actually enforces it.
             GLITCHTIP_MAX_EVENT_LIFE_DAYS: ${GLITCHTIP_MAX_EVENT_LIFE_DAYS:-90}
+            # No mail server exists: unset, Django dials SMTP on localhost and
+            # signup and password reset answer 500. Mail goes to the container
+            # log instead (`docker compose logs glitchtip-web` for a reset link),
+            # and crash alerts go to Discord through GlitchTip's own webhook.
+            EMAIL_URL: consolemail://
             # Off once the first account exists (§17). Two separate gates in
             # v4.2.2: ENABLE_USER_REGISTRATION is the signup gate (and defaults
             # True, so leaving it unset lets any tailnet device self-register),
@@ -144,6 +183,7 @@ services:
     # accumulate forever regardless of GLITCHTIP_MAX_EVENT_LIFE_DAYS.
     glitchtip-worker:
         image: glitchtip/glitchtip:v4.2.2
+        profiles: [glitchtip]
         restart: always
         command: ./bin/run-celery-with-beat.sh
         environment: *glitchtip-env
@@ -159,6 +199,7 @@ services:
 
     glitchtip-migrate:
         image: glitchtip/glitchtip:v4.2.2
+        profiles: [glitchtip]
         restart: 'no'
         command: ./bin/run-migrate.sh
         environment: *glitchtip-env

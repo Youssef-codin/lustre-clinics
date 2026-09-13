@@ -18,17 +18,23 @@ import { createServer } from './server.ts';
 
 startMonitoring();
 
-try {
-    await runMigrations();
-    logger.info('migrations applied');
-} catch (err) {
-    logger.fatal({ err }, 'migration failed');
-    await alert({
-        code: 'db.migration_failed',
-        summary: 'Migrations failed on boot. The server did not start.',
-        context: { error: err instanceof Error ? err.name : typeof err },
-    });
-    process.exit(1);
+// Off in production, where the server's role cannot change the schema and the
+// deploy runs `scripts/migrate.ts` as the owner before starting it.
+if (config.MIGRATE_ON_BOOT) {
+    try {
+        await runMigrations();
+        logger.info('migrations applied');
+    } catch (err) {
+        logger.fatal({ err }, 'migration failed');
+        await alert({
+            code: 'db.migration_failed',
+            summary: 'Migrations failed on boot. The server did not start.',
+            context: { error: err instanceof Error ? err.name : typeof err },
+        });
+        process.exit(1);
+    }
+} else {
+    logger.info('migrations skipped on boot (MIGRATE_ON_BOOT=false)');
 }
 
 await settingsService.ensureSeeded();

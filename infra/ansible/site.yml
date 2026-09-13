@@ -69,3 +69,14 @@
     - name: Docker
       ansible.builtin.import_tasks: tasks/docker.yml
       tags: [docker]
+
+    - name: App stacks
+      ansible.builtin.include_tasks:
+        file: tasks/app.yml
+        apply:
+          tags: [app]
+      loop: "{{ lustre_stacks }}"
+      loop_control:
+        loop_var: stack
+        label: "{{ stack.name }}"
+      tags: [app]

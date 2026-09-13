@@ -35,6 +35,43 @@ The SSH and firewall steps end by opening a fresh connection. If either fails,
 the session that ran the play has already been closed; get back in over the LAN
 (`ssh` to the LAN IP from `lan_cidr`) or at the keyboard.
 
+## Deploying the app
+
+Two stacks run on each clinic machine from the same `compose.yaml`, each in its
+own directory with its own database, network and passwords:
+
+| Stack | Directory | API | Database | GlitchTip | Migrations |
+|---|---|---|---|---|---|
+| prod | `/opt/lustre-prod` | `:3000` | `production`, `127.0.0.1:5432` | `:8000` | a deploy step, as `lustre_owner` |
+| dev | `/opt/lustre-dev` | `:3001` | `development`, `127.0.0.1:5433` | none | on boot |
+
+Both listen on the Tailscale address only. Build the binary, then run the `app`
+tag. The Discord webhook and heartbeat URLs come from the environment so they are
+never written into the repo; `read -rs` keeps them out of shell history.
+
+```sh
+bun run build:server
+read -rs LUSTRE_DISCORD_WEBHOOK_URL && export LUSTRE_DISCORD_WEBHOOK_URL
+read -rs LUSTRE_HEARTBEAT_URL && export LUSTRE_HEARTBEAT_URL
+cd infra/ansible && ansible-playbook site.yml -K --tags app
+```
+
+Each stack's `.env` is generated on the server the first time and never
+rewritten: its passwords are the ones the database volume was created with.
+Leaving a URL variable unset on a later run keeps the value already there.
+
+Operating a stack from its directory (`COMPOSE_PROJECT_NAME` in `.env` keeps
+`docker compose` on the right one):
+
+```sh
+cd /opt/lustre-prod
+docker compose ps
+docker compose logs -f server
+docker compose run --rm server backup
+```
+
+`lustre seed` refuses the production database, whatever its connection string.
+
 ## Off-site backups on the operator's machine
 
 The server dumps, restore-verifies and prunes its own backups (SPEC §16). The

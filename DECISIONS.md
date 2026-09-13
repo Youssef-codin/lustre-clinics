@@ -783,6 +783,32 @@ component is reused there.
 
 ---
 
+# The clinic machine
+
+## The server cannot change the schema, and production is marked in the database
+
+The clinic laptop runs `compose.yaml` twice, as `lustre-prod` and `lustre-dev`,
+each with its own volume, network and passwords. Production's Postgres has three
+roles (`infra/postgres/init/10-roles.sh`): the image's superuser, which nothing
+uses; `lustre_owner`, which owns the schema and runs migrations; and
+`lustre_app`, which the server connects as and which can read and write rows but
+not `DROP`, `TRUNCATE` or `ALTER`.
+
+That is why production does not migrate on boot. The server never holds the
+owner's password, so a bug or a hijacked request can delete rows at worst, never
+tables, and the deploy runs `scripts/migrate.ts` as the owner before starting it.
+Laptops and the dev stack keep `MIGRATE_ON_BOOT=true`. `lustre_app` keeps
+`CREATEDB` because the backup's restore check builds and drops a scratch
+database; it cannot drop the clinic's, which it does not own.
+
+The seed and the test suite refuse a database whose `lustre.environment` is
+`production`, read from the database with `current_setting`, not from the URL.
+The seed's old guard called hostname `db` local, and `db` is exactly what the
+production database is called inside its stack: `bun db:seed` in the server
+container would have deleted every patient. No flag overrides the marker.
+
+---
+
 # Corrections
 
 Kept because deleting them lets the same mistake happen again.

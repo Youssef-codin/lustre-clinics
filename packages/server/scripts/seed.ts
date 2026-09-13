@@ -50,6 +50,7 @@ import {
     type Tooth,
 } from '@lustre/shared';
 import { config } from '../src/config.ts';
+import { databaseEnvironment } from '../src/db/environment.ts';
 import { db, sql } from '../src/db/index.ts';
 import {
     appointmentProcedures,
@@ -145,6 +146,15 @@ function isLocalDatabase(url: string): boolean {
 
 if (!isLocalDatabase(config.DATABASE_URL) && !process.argv.includes('--force')) {
     logger.error('refusing to seed a non-local database; pass --force if that is really what you want');
+    process.exit(1);
+}
+
+// `db` is local by the check above, and it is also the production database's
+// hostname inside the clinic stack. The marker on the database is what tells
+// them apart, and no flag overrides it.
+if ((await databaseEnvironment(sql)) === 'production') {
+    logger.error('refusing to seed the production database: the seed deletes every row');
+    await sql.end();
     process.exit(1);
 }
 
