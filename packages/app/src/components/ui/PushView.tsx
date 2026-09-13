@@ -27,7 +27,12 @@ export type PushViewProps = {
 };
 
 export function PushView({ visible, children, onClosed, testID }: PushViewProps) {
-    const progress = useRef(new Animated.Value(visible ? 1 : 0)).current;
+    // Always 0, even when the pane is already `visible` on its first render.
+    // Every caller but the gallery mounts this from `rendered(stack)`, and a
+    // route only joins that list at the moment it is pushed — so `visible` is
+    // true on the very first render and starting at 1 left the timing animating
+    // 1 → 1. The slide ran, moved nothing, and the pane simply appeared.
+    const progress = useRef(new Animated.Value(0)).current;
     const [mounted, setMounted] = useState(visible);
     const reducedMotion = useReducedMotion();
     const window = useWindowDimensions();

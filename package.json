@@ -9,6 +9,7 @@
         "dev": "bun --watch packages/server/src/index.ts",
         "start": "bash scripts/dev.sh",
         "server": "bun packages/server/src/index.ts",
+        "build:server": "bun build --compile --minify --sourcemap --target=bun-linux-x64-musl-baseline packages/server/src/cli.ts --outfile dist/lustre && rm -rf dist/migrations && cp -r packages/server/src/db/migrations dist/migrations",
         "typecheck": "bun run --filter '*' typecheck",
         "lint": "biome check .",
         "lint:fix": "biome check --write .",

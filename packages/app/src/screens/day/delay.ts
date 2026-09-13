@@ -93,12 +93,14 @@ export function isProjected(appointment: Appointment, delay: DayDelay): boolean 
     return delay.minutes > 0 && !isSettled(appointment) && appointment.status === 'booked';
 }
 
-/** "20 min late", "1h 5m late" — the day's headline, or null when it is on time. */
+/**
+ * "21 min late", "1h 5m late" — the day's headline, or null when it is on time.
+ *
+ * The overrun to the minute, not the slot-rounded `minutes`. The banner used to
+ * carry both — "Running 25 min late" over "the chair is 21 min over" — and two
+ * figures for one fact read as a contradiction. The rounding is for where booked
+ * times slide to; the headline says how late it actually is.
+ */
 export function delayLabel(delay: DayDelay): string | null {
-    return delay.minutes > 0 ? `${formatDuration(delay.minutes)} late` : null;
-}
-
-/** Why the day is late, in the words the desk would use to explain it. */
-export function delayReason(delay: DayDelay): string | null {
-    return delay.fromChair > 0 ? `the chair is ${formatDuration(delay.fromChair)} over` : null;
+    return delay.fromChair > 0 ? `${formatDuration(delay.fromChair)} late` : null;
 }

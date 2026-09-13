@@ -1,0 +1,119 @@
+- name: Remove distro container packages
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-doc
+      - docker-compose
+      - podman-docker
+      - containerd
+      - runc
+    state: absent
+
+- name: Docker apt repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/debian
+    suites: "{{ ansible_facts.distribution_release }}"
+    components: stable
+    architectures: "{{ 'arm64' if ansible_facts.architecture == 'aarch64' else 'amd64' }}"
+    signed_by: https://download.docker.com/linux/debian/gpg
+
+- name: Docker CE and the compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  # Egyptian home and clinic connections stall mid-download often enough that
+  # one timeout should not fail the run. apt resumes what it already fetched.
+  register: docker_install
+  retries: 3
+  delay: 15
+  until: docker_install is succeeded
+
+- name: Docker config directory
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+# The default json-file log never rotates and would eventually fill the SSD.
+- name: Rotate container logs
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": { "max-size": "10m", "max-file": "3" }
+      }
+    mode: "0644"
+  notify: Restart docker
+
+# compose.yaml publishes ports on the Tailscale IP. After a power cut Docker can
+# start before tailscale0 has that address, the bind fails, and the container
+# stays down. Allowing binds to an address the host does not have yet removes
+# the race; the ordering below just makes it rarer.
+- name: Allow binding the Tailscale IP before it exists
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/60-lustre.conf
+    content: |
+      net.ipv4.ip_nonlocal_bind = 1
+      net.ipv6.ip_nonlocal_bind = 1
+    mode: "0644"
+  notify: Apply sysctl
+
+- name: docker.service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+
+- name: Start Docker after Tailscale
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/10-lustre.conf
+    content: |
+      [Unit]
+      Wants=tailscaled.service
+      After=tailscaled.service
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Apply Docker config
+  ansible.builtin.meta: flush_handlers
+
+- name: Docker starts on boot
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - containerd
+    - docker
+
+# Membership in `docker` is root on this machine in practice.
+- name: Admin user runs docker without sudo
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+
+- name: Pick up the new group
+  ansible.builtin.meta: reset_connection
+
+- name: Read Docker versions
+  become: false
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - docker version --format 'Docker Engine {{ "{{" }} .Server.Version {{ "}}" }}'
+    - docker compose version
+  register: docker_versions
+  changed_when: false
+
+- name: Show Docker versions
+  ansible.builtin.debug:
+    msg: "{{ docker_versions.results | map(attribute='stdout') | list }}"

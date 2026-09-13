@@ -1,0 +1,68 @@
+# Power cuts are routine at the clinic. After one, the machine has to come back
+# with nobody at the keyboard, and a cut longer than the battery should end in
+# a clean shutdown instead of the battery hitting zero in the middle of a write.
+
+- name: GRUB drop-in directory
+  ansible.builtin.file:
+    path: /etc/default/grub.d
+    state: directory
+    mode: "0755"
+
+# An unclean shutdown can leave errors the boot-time fsck will not fix without
+# a yes, and by default it stops at an emergency shell to ask. Nobody is there
+# to answer, so it answers yes itself.
+- name: Repair the filesystem at boot without asking
+  ansible.builtin.copy:
+    dest: /etc/default/grub.d/lustre.cfg
+    content: |
+      GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX fsck.repair=yes"
+      GRUB_TIMEOUT=2
+      GRUB_RECORDFAIL_TIMEOUT=2
+    mode: "0644"
+  notify: Update GRUB
+
+- name: Battery monitor
+  ansible.builtin.apt:
+    name: upower
+    state: present
+
+# The battery rides out short cuts. On a long one, power off while there is
+# still charge left, so Postgres shuts down cleanly.
+#
+# The threshold is high because the first clinic laptop's worn battery reads
+# honestly down to about a third and then collapses: 35% at 04:13, 3% a minute
+# later, with the machine seconds from dying. 35% costs a few minutes of
+# runtime and leaves the shutdown room to finish.
+- name: Power off cleanly when the battery runs low
+  ansible.builtin.lineinfile:
+    path: /etc/UPower/UPower.conf
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+  loop:
+    - { key: UsePercentageForPolicy, value: "true" }
+    - { key: PercentageLow, value: "50" }
+    - { key: PercentageCritical, value: "40" }
+    - { key: PercentageAction, value: "35" }
+    - { key: CriticalPowerAction, value: PowerOff }
+  notify: Restart upower
+
+# Debian ships upower as WantedBy=graphical.target and D-Bus activated, so on a
+# text-mode server nothing starts it at boot and nothing watches the battery.
+- name: Start upower on text-mode boots
+  ansible.builtin.command: systemctl add-wants multi-user.target upower.service
+  args:
+    creates: /etc/systemd/system/multi-user.target.wants/upower.service
+
+- name: upower is running
+  ansible.builtin.systemd_service:
+    name: upower
+    state: started
+
+- name: Services that must come back after a cut
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+  loop:
+    - tailscaled
+    - ssh
+    - upower

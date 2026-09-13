@@ -14,6 +14,20 @@ import { z } from 'zod';
 
 const envSchema = z.object({
     DATABASE_URL: z.string().min(1),
+    // On the clinic machine the server connects as `lustre_app`, which cannot
+    // change the schema, so migrations need the owner role's URL. Production
+    // leaves MIGRATE_ON_BOOT off and never hands the server that URL at all:
+    // migrations run as their own deploy step (infra/README.md).
+    MIGRATION_DATABASE_URL: z
+        .string()
+        .min(1)
+        .optional()
+        .or(z.literal('').transform(() => undefined)),
+    MIGRATE_ON_BOOT: z.stringbool().default(true),
+    // The compiled binary carries no files beside its own code, so the image
+    // ships the SQL folder and points here. Unset, migrations are read from
+    // next to the schema in the source tree.
+    MIGRATIONS_DIR: z.string().min(1).optional(),
     PORT: z.coerce.number().int().positive().default(3000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

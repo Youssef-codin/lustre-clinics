@@ -1,0 +1,38 @@
+all:
+  children:
+    clinics:
+      hosts:
+        smilemakers:
+          # The Tailscale address, never the LAN one: this play restricts SSH
+          # and the firewall on the LAN side while it is connected.
+          ansible_host: 100.125.78.21
+          # Where the LAN SSH fallback is allowed from. Set per clinic.
+          lan_cidr: 192.168.1.0/24
+      vars:
+        ansible_user: youssef
+        timezone: Africa/Cairo
+        # Read from the machine running the play so no key is committed.
+        admin_pubkeys:
+          - "{{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'HOME') ~ '/.ssh/id_ed25519.pub') }}"
+        repo_root: "{{ playbook_dir }}/../.."
+        # Both stacks run from the same compose.yaml in their own directory
+        # (/opt/lustre-<name>) with their own volumes, network and passwords.
+        # The URLs are read from these environment variables when the play
+        # runs, so none is ever written into the repo; dev reports nowhere.
+        lustre_stacks:
+          - name: prod
+            environment: production
+            api_port: 3000
+            db_port: 5432
+            glitchtip: true
+            migrate_on_boot: false
+            discord_env: LUSTRE_DISCORD_WEBHOOK_URL
+            heartbeat_env: LUSTRE_HEARTBEAT_URL
+          - name: dev
+            environment: development
+            api_port: 3001
+            db_port: 5433
+            glitchtip: false
+            migrate_on_boot: true
+            discord_env: ""
+            heartbeat_env: ""

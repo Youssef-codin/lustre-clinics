@@ -1,5 +1,6 @@
 import { databaseName } from '../../src/backup/pg.ts';
 import { config } from '../../src/config.ts';
+import { refuseProduction } from '../../src/db/environment.ts';
 import { sql as dbSql } from '../../src/db/index.ts';
 import { runMigrations } from '../../src/db/migrate.ts';
 import { buildPatientRef } from '../../src/util/ref.ts';
@@ -36,6 +37,8 @@ let migrated = false;
 export async function setupDatabase(): Promise<void> {
     if (migrated) return;
     assertTestDatabase();
+    // A production database renamed or restored as `*_test` still carries its marker.
+    await refuseProduction(sql, 'run the test suite');
     await runMigrations();
     migrated = true;
 }

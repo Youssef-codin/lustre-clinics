@@ -2,11 +2,17 @@
  * SPEC §16 — `pg_dump` on a schedule inside the compose stack, and an alert
  * when no backup has succeeded in 48h.
  *
- * The schedule is an interval rather than a cron expression: the clinic machine
- * is powered off overnight (§15), so a fixed wall-clock time would be missed
- * routinely. An interval from boot always runs. `runBackup` already logs and
- * alerts a failed run; `runNow` swallows the rejection so one bad night cannot
- * take the interval — and every later backup — down with it.
+ * The schedule is an interval rather than a cron expression, so a machine that
+ * was off at the wall-clock hour still backs up. But an interval counts from
+ * boot, and the clinic machine loses power more often than once a day: every
+ * restart put the next backup a full interval away, so a clinic with daily
+ * power cuts would never back up at all. A backup that is already due therefore
+ * runs at boot, and the staleness check waits for it rather than alerting about
+ * a gap the boot run is about to close.
+ *
+ * `runBackup` already logs and alerts a failed run; `runNow` swallows the
+ * rejection so one bad night cannot take the interval, and every later backup,
+ * down with it.
  */
 import { readLastSuccess, runBackup } from '../backup/index.ts';
 import { config } from '../config.ts';
@@ -16,6 +22,14 @@ import { alert } from '../monitoring/index.ts';
 export interface BackupJob {
     runNow(): Promise<boolean>;
     stop(): void;
+}
+
+/** Due when nothing has ever succeeded, or the last success is an interval old. */
+export function isBackupDue(lastSuccessAt: string | null, now: number, intervalMs: number): boolean {
+    if (!lastSuccessAt) return true;
+    const at = new Date(lastSuccessAt).getTime();
+    if (Number.isNaN(at)) return true;
+    return now - at >= intervalMs;
 }
 
 export function startBackupJob(): BackupJob {
@@ -45,7 +59,13 @@ export function startBackupJob(): BackupJob {
         }
     }
 
-    void checkStaleness();
+    void readLastSuccess().then((last) => {
+        if (isBackupDue(last?.at ?? null, Date.now(), intervalMs)) {
+            logger.info({ lastSuccessAt: last?.at ?? null }, 'backup due at boot');
+            return runNow().then(checkStaleness);
+        }
+        return checkStaleness();
+    });
 
     const timer = setInterval(() => {
         void runNow().then(checkStaleness);

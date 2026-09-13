@@ -25,6 +25,7 @@ import {
 } from '../data';
 import { describeError } from '../errors';
 import { formatSpan, minutesOfDay } from '../time';
+import { PlanSummary } from './PlanSummary';
 
 export type AppointmentDetailSheetProps = {
     visible: boolean;
@@ -136,6 +137,12 @@ export function AppointmentDetailSheet({
                     {appointment.ref}
                 </Text>
             </View>
+
+            {/* Above the phone number, because it is what a row is tapped to
+                find out. The sheet held the status, the phone, the note and the
+                money, and not the one thing the desk is asked across the counter
+                — what they are in for today. */}
+            <PlanSummary procedures={appointment.procedures} label="BOOKED FOR" />
 
             <View style={styles.facts}>
                 <Fact label="Phone" value={appointment.patient.phone} mono />

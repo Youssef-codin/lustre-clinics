@@ -1,0 +1,108 @@
+#!/usr/sbin/nft -f
+# Managed by infra/ansible.
+#
+# No `flush ruleset`: Docker and Tailscale keep their own tables, and reloading
+# this file must not remove them. Declaring the table before deleting it makes
+# the delete safe on first load.
+
+table inet lustre
+delete table inet lustre
+
+table inet lustre {
+    # Docker publishes ports by rewriting the destination in prerouting and
+    # forwarding to the container, so those connections never reach `input`
+    # below. This chain runs after conntrack and before Docker's rewrite, and
+    # applies the same allow-list to every new connection aimed at this
+    # machine: a published port is unreachable from the LAN no matter which
+    # address compose binds it to.
+    #
+    # Only new connections are judged. Replies, including a container's
+    # replies to tailnet clients, pass untouched.
+    chain guard {
+        type filter hook prerouting priority mangle; policy accept;
+
+        ct state != new accept
+        iifname { "lo", "tailscale0", "docker0" } accept
+        # Compose networks are bridges named br-<id>. Wildcards only match
+        # outside a set.
+        iifname "br-*" accept
+        fib daddr type != local accept
+
+        meta l4proto { icmp, ipv6-icmp } accept
+        udp dport { 68, 546 } accept
+        # Lets tailnet devices on the same LAN connect directly instead of
+        # through a relay. Nothing is forwarded from the router.
+        udp dport 41641 accept
+        # SSH fallback for someone physically on the clinic network when
+        # Tailscale is down. Key-only, like every other SSH login.
+        ip saddr {{ lan_cidr }} tcp dport 22 accept
+
+        drop
+    }
+
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        iifname "lo" accept
+        ct state established,related accept
+        ct state invalid drop
+
+        # Anything on the tailnet may reach the host. Who is on the tailnet is
+        # decided by the clinic account's Tailscale ACLs.
+        iifname "tailscale0" accept
+
+        meta l4proto { icmp, ipv6-icmp } accept
+        udp dport { 68, 546, 41641 } accept
+        ip saddr {{ lan_cidr }} tcp dport 22 accept
+    }
+
+    # What this machine and its containers may start on the internet. Everything
+    # the clinic server does fits in a few ports; anything else is dropped and
+    # logged, so a surprise shows up in `journalctl -k -g "lustre egress"`.
+    #
+    # Ports, not hosts: the destinations (Debian, Docker Hub, Discord,
+    # UptimeRobot, Tailscale) sit behind CDNs whose addresses change.
+    chain egress_allowed {
+        meta l4proto { tcp, udp } th dport 53 accept
+        udp dport 123 accept
+        tcp dport { 80, 443 } accept
+        meta l4proto { icmp, ipv6-icmp } accept
+        # Tailscale: STUN to its relays, and WireGuard from its own port to
+        # whatever port each peer is reachable on.
+        udp dport 3478 accept
+        udp sport 41641 accept
+
+        limit rate 6/minute log prefix "lustre egress drop: " level warn
+        drop
+    }
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+
+        oifname { "lo", "tailscale0" } accept
+        ct state established,related accept
+        ip daddr {{ lan_cidr }} accept
+        udp dport { 67, 547 } accept
+
+        jump egress_allowed
+    }
+
+    # Containers' outbound traffic is forwarded, not output. Only new
+    # connections leaving a Docker bridge for somewhere other than another
+    # bridge or the tailnet are checked.
+    chain container_egress {
+        ct state != new return
+        oifname { "docker0", "tailscale0" } return
+        oifname "br-*" return
+        ip daddr {{ lan_cidr }} return
+
+        jump egress_allowed
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+
+        iifname "docker0" jump container_egress
+        iifname "br-*" jump container_egress
+    }
+}

@@ -261,4 +261,46 @@ describe('heartbeat', () => {
             beat.stop();
         }
     });
+
+    // The server stays up when Postgres is down; a heartbeat that kept going
+    // would hide exactly the outage the monitor exists to catch.
+    test('stays silent while the server is unhealthy', async () => {
+        let hits = 0;
+        const beat = startHeartbeat({
+            url: 'http://monitor.invalid/beat',
+            intervalMs: 60_000,
+            isHealthy: async () => false,
+            fetchImpl: async () => {
+                hits += 1;
+                return new Response(null, { status: 200 });
+            },
+        });
+
+        try {
+            expect(await beat.ping()).toBe(false);
+            expect(hits).toBe(0);
+        } finally {
+            beat.stop();
+        }
+    });
+
+    test('pings while the server is healthy', async () => {
+        let hits = 0;
+        const beat = startHeartbeat({
+            url: 'http://monitor.invalid/beat',
+            intervalMs: 60_000,
+            isHealthy: async () => true,
+            fetchImpl: async () => {
+                hits += 1;
+                return new Response(null, { status: 200 });
+            },
+        });
+
+        try {
+            expect(await beat.ping()).toBe(true);
+            expect(hits).toBeGreaterThanOrEqual(1);
+        } finally {
+            beat.stop();
+        }
+    });
 });

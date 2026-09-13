@@ -27,7 +27,7 @@
  */
 // biome-ignore lint/style/noRestrictedImports: starts a Reanimated timing when the count changes — an animation is precisely the outside thing the rule allows for
 import { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ProgressBar, useReducedMotion } from '../../../components/ui';
 import { space, Text } from '../../../theme';
@@ -43,20 +43,27 @@ export type ChairProgressProps = {
     appointment: Appointment;
     /** `in_chair_at` — when the visit began. Absent until it has loaded. */
     seatedAt?: string;
+    /**
+     * The ground it is drawn on. The black cards are `ink`, where `live` is the
+     * green that reads; the doctor's strip is white, where `live` all but
+     * disappears (see `theme/Text.tsx`), so off `ink` the fill is `success`.
+     */
+    onDark?: boolean;
+    style?: StyleProp<ViewStyle>;
 };
 
-export function ChairProgress({ appointment, seatedAt }: ChairProgressProps) {
+export function ChairProgress({ appointment, seatedAt, onDark = true, style }: ChairProgressProps) {
     const nowMinutes = useNowSeconds();
     const progress = slotProgress(appointment, nowMinutes, seatedAt);
 
     return (
-        <View style={styles.progress}>
+        <View style={[styles.progress, style]}>
             <View style={styles.track}>
                 <ProgressBar
                     value={progress.value}
-                    tone={progress.over ? 'due' : 'live'}
+                    tone={progress.over ? 'due' : onDark ? 'live' : 'success'}
                     height={5}
-                    onDark
+                    onDark={onDark}
                     accessibilityLabel="Time into the slot"
                 />
             </View>

@@ -26,7 +26,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { MoneyValue, ToothGroupCard } from '../../../components/domain';
 import { Button, Callout, Chevron, Chip, Select, Textarea, useKeyboardHeight } from '../../../components/ui';
 import { border, color, radius, size, space, Text } from '../../../theme';
-import { dayLabel, fortnightSlots, slotIsFree, timeLabel, workingDaysIn } from '../booking';
+import { dayLabel, daysOffered, fortnightSlots, slotIsFree, timeLabel } from '../booking';
+import { CALENDAR_CLOSED, type CalendarState, closeCalendar, openCalendar } from '../calendar';
 import { api, type Branch, type ClinicDay, useLocalMutation, useLocalQuery } from '../data';
 import { describeError } from '../errors';
 import { isClosed } from '../hours';
@@ -44,6 +45,7 @@ import {
     time12,
     todayKey,
 } from '../time';
+import { CalendarSheet } from './CalendarSheet';
 import { CalendarIcon, CheckIcon, DurationIcon, PatientIcon, PinIcon } from './icons';
 import { ProcedurePlan } from './ProcedurePlan';
 import { SlotPicker } from './SlotPicker';
@@ -72,7 +74,10 @@ export type BookingScreenProps = {
     onBooked: (message: string) => void;
 };
 
-/** How far ahead the day strip offers. */
+/**
+ * How far ahead the day strip offers without being asked. Anything past it is
+ * reached by name through the calendar — see `daysOffered`.
+ */
 const STRIP_DAYS = 14;
 
 /** The floating dock's button and its padding — what the scroll has to clear. */
@@ -108,6 +113,19 @@ export function BookingScreen({
         asked ?? (!isClosed(today, schedule, branchId) && dateKey === today ? 'now' : 'later'),
     );
     const [date, setDate] = useState(dateKey < today ? today : dateKey);
+    /**
+     * A day past the strip's window, asked for by name — seeded from the day
+     * the screen behind was on, and replaced whenever the calendar answers.
+     *
+     * Without it, opening a booking from a day months out threw that day away
+     * before the desk saw the form: the day was not in the window, so the guard
+     * below moved the picker to the first day that was, and the only sign of it
+     * was the tile at the top quietly reading today.
+     */
+    const [farDay, setFarDay] = useState<string | null>(
+        dateKey > addDays(today, STRIP_DAYS - 1) ? dateKey : null,
+    );
+    const [calendar, setCalendar] = useState<CalendarState>(CALENDAR_CLOSED);
     const [slotMinutes, setSlotMinutes] = useState<number | null>(null);
     const [duration, setDuration] = useState(defaultDuration);
     const [note, setNote] = useState('');
@@ -150,8 +168,8 @@ export function BookingScreen({
     // batches over `httpBatchLink` — and the day being booked reads its times
     // out of the same answer, so the grid and the Book button cannot disagree.
     const workingDays = useMemo(
-        () => workingDaysIn(today, STRIP_DAYS, schedule, branch),
-        [today, schedule, branch],
+        () => daysOffered(today, STRIP_DAYS, farDay, schedule, branch),
+        [today, farDay, schedule, branch],
     );
 
     const fortnight = useLocalQuery(
@@ -468,6 +486,7 @@ export function BookingScreen({
                                 days={openDays}
                                 daysLoading={fetched === undefined && fortnight.status !== 'error'}
                                 onPickDate={setDate}
+                                onPickFurtherDate={() => setCalendar(openCalendar)}
                                 slotMinutes={slotMinutes}
                                 onPickSlot={(next) => {
                                     setSlotMinutes(next);
@@ -647,6 +666,29 @@ export function BookingScreen({
                     />
                 </View>
             </View>
+
+            {/* The day view's own calendar, in `book` mode: it counts every
+                branch the same way, but the branch here is a field of this form
+                and the pick must not move it. Keyed by `seq` for the reason the
+                day screens key it — its month is `useState` off the day handed
+                in, so a sheet that survived would reopen on the month it was
+                last left on. */}
+            <CalendarSheet
+                key={`booking-calendar:${calendar.seq}`}
+                visible={calendar.open}
+                selected={date}
+                schedule={schedule}
+                branches={branches}
+                branchId={branch}
+                mode="book"
+                onPick={(picked) => {
+                    setFarDay(picked);
+                    setDate(picked);
+                    setSlotMinutes(null);
+                    reset();
+                }}
+                onClose={() => setCalendar(closeCalendar)}
+            />
         </View>
     );
 }
