@@ -12,11 +12,14 @@ import { startBackupJob } from './background/backup.job.ts';
 import { config } from './config.ts';
 import { runMigrations } from './db/migrate.ts';
 import { logger } from './logger.ts';
+import { healthService } from './modules/health/health.service.ts';
 import { settingsService } from './modules/settings/settings.service.ts';
 import { alert, startMonitoring, stopMonitoring } from './monitoring/index.ts';
 import { createServer } from './server.ts';
 
-startMonitoring();
+// The heartbeat reports the same health the phones see, so a server whose
+// database is down goes silent and the monitor alerts (§17).
+startMonitoring({ isHealthy: async () => (await healthService.check()).ok });
 
 // Off in production, where the server's role cannot change the schema and the
 // deploy runs `scripts/migrate.ts` as the owner before starting it.

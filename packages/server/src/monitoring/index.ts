@@ -24,7 +24,12 @@ export function alert(a: Alert): Promise<void> {
 
 let heartbeat: Heartbeat | undefined;
 
-export function startMonitoring(): void {
+export interface MonitoringOptions {
+    /** Asked before each heartbeat; passed in so monitoring never imports the database. */
+    isHealthy?: () => Promise<boolean>;
+}
+
+export function startMonitoring(options: MonitoringOptions = {}): void {
     if (!config.DISCORD_WEBHOOK_URL) {
         logger.warn('DISCORD_WEBHOOK_URL is unset — alerts are logged only');
     }
@@ -51,6 +56,7 @@ export function startMonitoring(): void {
         heartbeat = startHeartbeat({
             url: config.HEARTBEAT_URL,
             intervalMs: config.HEARTBEAT_INTERVAL_SECONDS * 1000,
+            isHealthy: options.isHealthy,
         });
     } else {
         logger.warn('HEARTBEAT_URL is unset — no external liveness check');
