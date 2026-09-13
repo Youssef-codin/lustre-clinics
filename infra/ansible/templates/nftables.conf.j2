@@ -55,4 +55,54 @@ table inet lustre {
         udp dport { 68, 546, 41641 } accept
         ip saddr {{ lan_cidr }} tcp dport 22 accept
     }
+
+    # What this machine and its containers may start on the internet. Everything
+    # the clinic server does fits in a few ports; anything else is dropped and
+    # logged, so a surprise shows up in `journalctl -k -g "lustre egress"`.
+    #
+    # Ports, not hosts: the destinations (Debian, Docker Hub, Discord,
+    # UptimeRobot, Tailscale) sit behind CDNs whose addresses change.
+    chain egress_allowed {
+        meta l4proto { tcp, udp } th dport 53 accept
+        udp dport 123 accept
+        tcp dport { 80, 443 } accept
+        meta l4proto { icmp, ipv6-icmp } accept
+        # Tailscale: STUN to its relays, and WireGuard from its own port to
+        # whatever port each peer is reachable on.
+        udp dport 3478 accept
+        udp sport 41641 accept
+
+        limit rate 6/minute log prefix "lustre egress drop: " level warn
+        drop
+    }
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+
+        oifname { "lo", "tailscale0" } accept
+        ct state established,related accept
+        ip daddr {{ lan_cidr }} accept
+        udp dport { 67, 547 } accept
+
+        jump egress_allowed
+    }
+
+    # Containers' outbound traffic is forwarded, not output. Only new
+    # connections leaving a Docker bridge for somewhere other than another
+    # bridge or the tailnet are checked.
+    chain container_egress {
+        ct state != new return
+        oifname { "docker0", "tailscale0" } return
+        oifname "br-*" return
+        ip daddr {{ lan_cidr }} return
+
+        jump egress_allowed
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+
+        iifname "docker0" jump container_egress
+        iifname "br-*" jump container_egress
+    }
 }
